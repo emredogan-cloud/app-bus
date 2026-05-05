@@ -200,6 +200,25 @@ export class ApiClient {
     return this.request('/v1/search', { method: 'GET', query: params });
   }
 
+  // ── ETA endpoints (Phase 5) ────────────────────────────────────────────
+  stopEtas(
+    stopId: string,
+    params: { limit?: number; horizon_min?: number } = {},
+  ): Promise<{
+    items: Array<{
+      route_id: string;
+      route_code: string;
+      headsign: string | null;
+      vehicle_id: string | null;
+      eta_unix: number;
+      eta_seconds: number;
+      confidence: 'high' | 'medium' | 'low';
+      source: 'live' | 'schedule';
+    }>;
+  }> {
+    return this.request(`/v1/stops/${stopId}/etas`, { method: 'GET', query: params });
+  }
+
   // ── User endpoints ─────────────────────────────────────────────────────
   getProfile(): Promise<UserProfile> {
     return this.request<UserProfile>('/v1/users/me', { method: 'GET' });

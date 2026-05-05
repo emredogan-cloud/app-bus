@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 4 complete → about to start **Phase 5: ETA Engine**
+**Current Phase:** ✅ Phase 5 complete → about to start **Phase 6: Favorites + Notifications**
 
 ---
 
@@ -53,6 +53,41 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 5: ETA Engine (2026-05-05)
+
+**Status:** ✅ Completed
+
+**Summary:**
+
+- **Decision:** Implemented in TS as a NestJS module (`apps/api/src/modules/eta/`) rather than the separate Go service the roadmap originally proposed. At MVP scale (≤500 vehicles updating every 10–15s) this comfortably fits in the API process and avoids a deploy unit. The pure-logic `EtaCalculator` is isolated, so future scale-out to a Go service is a port-by-translation.
+- `EtaCalculator` + `EwmaSpeedTracker` (alpha=0.3, 5 km/h floor, 5min stale reset). Per-route smoothed speed, downstream-stop projection by `distance_along_shape_m` precomputed in Phase 2.
+- Confidence: `high` (data <30s old AND stop ≤1.5km away), `medium`, `low` (>90s old or far-stop with already-medium base).
+- `EtaWorker` listens to `MqttBridge.updates$`, projects each vehicle to its nearest route_stop via PostGIS (`ST_Distance` against `stops.location` GIST), determines direction, and recomputes ETAs for the downstream stops. Per-route metadata is cached in-process and exposed via `refresh()` for tests/admin.
+- `EtaService.writeLive` writes Redis ZSET `etas:stop:{stop_id}` (score = eta_unix). Atomically trims ETAs older than 30s, caps at 100 entries, sets 5-min EXPIRE.
+- `EtaService.getForStop` reads upcoming ETAs from Redis; **falls through to a schedule-based ETA** computed inline from `ScheduleEntry` when Redis is empty. Schedule rows are tagged `source: 'schedule'` with `confidence: 'low'`. `ScheduleFallback` cron is a no-op placeholder — the inline read-time fallback is simpler at our scale.
+- REST: `GET /v1/stops/:id/etas?limit=&horizon_min=` (Public, `Cache-Control: max-age=15, stale-while-revalidate=30`).
+- `@app-bus/api-client` extended with typed `stopEtas()` method.
+- Mobile:
+  - `useStopEtas(stopId)` hook polls every 15s (cheap thanks to edge cache).
+  - `formatEta` (TR/EN), `etaColor` (urgent <2min, soon <5min, normal otherwise).
+  - Stop detail screen now shows the full ETA list with route badge, headsign, source label (Live/Scheduled), confidence dot, and color-coded arrival time.
+
+**Verification:**
+
+- ✅ `pnpm -r typecheck` clean
+- ✅ `pnpm test` — 75/75 across api (52), api-client (5), types (5), mobile (13)
+- ✅ Phase 5 added 13 new tests:
+  - api: `EwmaSpeedTracker` init, alpha-blend, stale reset, per-route isolation; `EtaCalculator` ascending order, upstream filtering, horizon clamp, confidence high/medium/low transitions
+  - mobile: `formatEta` Now/Şimdi, minutes, HH:MM; `etaColor` urgent/soon/normal
+
+**Key Outputs:**
+
+- New module: `eta` (Calculator, Worker, Service, Controller)
+- New endpoint: `GET /v1/stops/:id/etas`
+- New mobile: `src/features/eta/` (`useStopEtas`, `formatEta`, `etaColor`)
+
+---
 
 ### Phase 4: Live Map — WebSocket Streaming (2026-05-05)
 

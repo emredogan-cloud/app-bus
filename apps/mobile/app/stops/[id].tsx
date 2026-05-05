@@ -3,15 +3,18 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/shared/api';
+import { useStopEtas } from '@/features/eta/use-stop-etas';
+import { etaColor, formatEta } from '@/features/eta/format-eta';
 import { theme } from '@/shared/theme';
 
 type Stop = Awaited<ReturnType<typeof apiClient.getStop>>;
 
 export default function StopDetailScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [stop, setStop] = useState<Stop | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const etas = useStopEtas(id);
 
   useEffect(() => {
     if (!id) return;
@@ -41,15 +44,7 @@ export default function StopDetailScreen() {
     );
   }
 
-  const linesByDirection = stop.lines.reduce(
-    (acc, l) => {
-      const arr = acc[l.direction] ?? [];
-      arr.push(l);
-      acc[l.direction] = arr;
-      return acc;
-    },
-    {} as Record<string, typeof stop.lines>,
-  );
+  const locale = (i18n.language === 'en' ? 'en' : 'tr') as 'tr' | 'en';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: theme.spacing.lg }}>
@@ -59,29 +54,51 @@ export default function StopDetailScreen() {
       </Text>
 
       <Text style={styles.section}>{t('transit.stop.lines')}</Text>
-      {stop.lines.length === 0 && <Text style={styles.muted}>{t('transit.stop.no_lines')}</Text>}
-
-      {(['outbound', 'inbound'] as const).map((dir) => {
-        const lines = linesByDirection[dir] ?? [];
-        if (lines.length === 0) return null;
+      {etas === null && <ActivityIndicator color={theme.colors.primary} />}
+      {etas !== null && etas.length === 0 && (
+        <Text style={styles.muted}>
+          {locale === 'tr'
+            ? 'Önümüzdeki saatte yaklaşan araç yok.'
+            : 'No vehicles in the next hour.'}
+        </Text>
+      )}
+      {etas?.map((e, idx) => {
+        const c = etaColor(e.eta_seconds);
         return (
-          <View key={dir}>
-            <Text style={styles.dirHeader}>
-              {t(`transit.stop.directions.${dir}` as 'transit.stop.directions.outbound')}
+          <View key={`${e.route_id}-${idx}`} style={styles.row}>
+            <Text style={styles.routeBadge}>{e.route_code}</Text>
+            <View style={{ flex: 1, marginLeft: theme.spacing.md }}>
+              <Text style={styles.rowText}>{e.headsign ?? e.route_code}</Text>
+              <Text style={styles.rowMeta}>
+                {e.source === 'live'
+                  ? locale === 'tr'
+                    ? 'Canlı'
+                    : 'Live'
+                  : locale === 'tr'
+                    ? 'Tarifeden'
+                    : 'Scheduled'}{' '}
+                · {e.confidence}
+              </Text>
+            </View>
+            <Text style={[styles.eta, etaStyle(c)]}>
+              {formatEta(e.eta_seconds, e.eta_unix, locale)}
             </Text>
-            {lines
-              .sort((a, b) => a.sequence - b.sequence)
-              .map((l) => (
-                <View key={l.route.id} style={styles.row}>
-                  <Text style={styles.routeBadge}>{l.route.code}</Text>
-                  <Text style={styles.rowText}>{l.route.name_tr}</Text>
-                </View>
-              ))}
           </View>
         );
       })}
     </ScrollView>
   );
+}
+
+function etaStyle(c: 'urgent' | 'soon' | 'normal') {
+  switch (c) {
+    case 'urgent':
+      return { color: theme.colors.danger };
+    case 'soon':
+      return { color: theme.colors.warning };
+    default:
+      return { color: theme.colors.success };
+  }
 }
 
 const styles = StyleSheet.create({
@@ -99,14 +116,9 @@ const styles = StyleSheet.create({
     color: theme.colors.subtext,
     fontSize: theme.typography.caption,
     textTransform: 'uppercase',
+    marginBottom: theme.spacing.sm,
   },
   muted: { color: theme.colors.subtext, marginTop: theme.spacing.sm },
-  dirHeader: {
-    marginTop: theme.spacing.md,
-    color: theme.colors.text,
-    fontSize: theme.typography.subtitle,
-    fontWeight: '600',
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -114,21 +126,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
   },
-  rowText: {
-    marginLeft: theme.spacing.md,
-    color: theme.colors.text,
-    fontSize: theme.typography.body,
-    flexShrink: 1,
-  },
+  rowText: { color: theme.colors.text, fontSize: theme.typography.body },
+  rowMeta: { color: theme.colors.subtext, fontSize: theme.typography.caption, marginTop: 2 },
   routeBadge: {
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 4,
     backgroundColor: theme.colors.primary,
     color: theme.colors.primaryFg,
     borderRadius: theme.radius.sm,
     fontWeight: '700',
-    minWidth: 48,
+    minWidth: 56,
     textAlign: 'center',
   },
+  eta: { fontSize: theme.typography.subtitle, fontWeight: '700' },
   error: { color: theme.colors.danger, fontSize: theme.typography.body },
 });
