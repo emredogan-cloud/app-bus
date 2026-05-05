@@ -67,6 +67,7 @@ function RootLayout() {
             <Stack.Screen name="(authed)/profile" options={{ headerShown: true, title: '' }} />
             <Stack.Screen name="(authed)/search" options={{ headerShown: true, title: '' }} />
             <Stack.Screen name="(authed)/map" options={{ headerShown: true, title: '' }} />
+            <Stack.Screen name="(authed)/favorites" options={{ headerShown: true, title: '' }} />
             <Stack.Screen name="stops/[id]" options={{ headerShown: true, title: '' }} />
           </Stack>
         </NavGate>

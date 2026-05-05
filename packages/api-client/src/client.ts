@@ -200,6 +200,68 @@ export class ApiClient {
     return this.request('/v1/search', { method: 'GET', query: params });
   }
 
+  // ── Favorites + Notifications (Phase 6) ────────────────────────────────
+  listFavorites(): Promise<
+    Array<{
+      id: string;
+      target_type: 'stop' | 'route';
+      target_id: string;
+      label: string | null;
+      sort_order: number;
+    }>
+  > {
+    return this.request('/v1/users/me/favorites', { method: 'GET' });
+  }
+
+  addFavorite(input: {
+    target_type: 'stop' | 'route';
+    target_id: string;
+    label?: string;
+  }): Promise<{ id: string }> {
+    return this.request('/v1/users/me/favorites', { method: 'POST', body: input });
+  }
+
+  removeFavorite(id: string): Promise<void> {
+    return this.request(`/v1/users/me/favorites/${id}`, { method: 'DELETE' });
+  }
+
+  reorderFavorites(ids: string[]): Promise<void> {
+    return this.request('/v1/users/me/favorites/order', { method: 'PUT', body: { ids } });
+  }
+
+  listNotificationRules(): Promise<
+    Array<{
+      id: string;
+      stop_id: string;
+      route_id: string | null;
+      threshold_minutes: number;
+      days_of_week_bitmask: number;
+      enabled: boolean;
+    }>
+  > {
+    return this.request('/v1/users/me/notification-rules', { method: 'GET' });
+  }
+
+  createNotificationRule(input: {
+    stop_id: string;
+    route_id?: string | null;
+    threshold_minutes: number;
+    days_of_week_bitmask?: number;
+  }): Promise<{ id: string }> {
+    return this.request('/v1/users/me/notification-rules', { method: 'POST', body: input });
+  }
+
+  removeNotificationRule(id: string): Promise<void> {
+    return this.request(`/v1/users/me/notification-rules/${id}`, { method: 'DELETE' });
+  }
+
+  registerDevice(input: {
+    expo_push_token: string;
+    platform: 'ios' | 'android' | 'web';
+  }): Promise<{ id: string }> {
+    return this.request('/v1/users/me/devices', { method: 'POST', body: input });
+  }
+
   // ── ETA endpoints (Phase 5) ────────────────────────────────────────────
   stopEtas(
     stopId: string,

@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 5 complete → about to start **Phase 6: Favorites + Notifications**
+**Current Phase:** ✅ Phase 7 (MVP) complete → about to start **Phase 8: Premium & Monetization**
 
 ---
 
@@ -53,6 +53,87 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 7: Hardening + Beta Launch (2026-05-05) — **MVP shipped**
+
+**Status:** ✅ Completed (code-side; physical store submission + 200/50 beta invites are operator tasks beyond CI scope)
+
+**Summary:**
+
+- **Mobile offline cache:** `react-native-mmkv` v4 backed `offlineCache` module with typed get/set/delete/clear and `cacheKeys` constants. Synchronous reads enable hydration without a loading spinner on cold start.
+- **Network awareness:** `NetworkBanner` component (NetInfo) renders a warning strip when the device drops connectivity.
+- **Legal docs (versioned, TR + EN):**
+  - `docs/legal/privacy-{tr,en}.md` — KVKK + GDPR aligned data inventory, retention windows, rights, controller contact.
+  - `docs/legal/terms-{tr,en}.md` — acceptable use, ETA accuracy disclaimer, governing law.
+  - `docs/legal/app-store-privacy.json` — copy/paste source of truth for the App Store Connect privacy questionnaire.
+- **Status page runbook** (`docs/runbooks/status-page.md`): BetterStack components, alert thresholds, incident workflow, TestFlight + Play Console demo credentials policy.
+- **Load test scaffold** (`infra/load-test/k6-baseline.js`): 5k concurrent WS + 500 RPS REST mixed, p95 < 400ms thresholds. Not run from CI — staging deployment required.
+- **Demo seed** (`apps/api/prisma/seed-demo.ts`): idempotent upsert of the `betademo@app-bus.tr` reviewer account (password from env, never in git). Pre-populates KVKK consent.
+- **Performance hardening** (documented for the runbook, applied opportunistically as components are added):
+  - All animations are Reanimated worklets (no setState-driven animations).
+  - FlashList is the default for >50-item lists.
+  - Sentry source maps uploaded on EAS Build via the existing plugin.
+  - Cold-start budget: <2s on Pixel 6, <2.5s on iPhone 12 — verified manually before each store submission.
+
+**Deferred to operator tasks (out of code scope):**
+
+- Apple Developer + Google Play Console paid accounts.
+- Privacy Policy + ToS hosting at `https://app-bus.tr/legal/*` (Phase 9 web), or temporary S3+CloudFront before Phase 9 ships.
+- Recruiting 200 IST + 50 ANK beta users via transit subreddits and university Discord.
+- Submitting screenshots (5 per platform per locale).
+- Provisioning AWS account, running `terraform apply`, populating Secrets Manager values.
+
+**Verification:**
+
+- ✅ `pnpm -r typecheck` clean
+- ✅ `pnpm test` — 82/82 (no new tests; Phase 7 deliverables are operational + scaffolding)
+- ⏭️ Real beta-period crash-free rate, p95 latency, MAU metrics depend on actual launch
+
+**Key Outputs:**
+
+- Mobile: `offlineCache`, `NetworkBanner`
+- Docs: privacy + terms (TR/EN), App Store privacy nutrition JSON, status-page runbook
+- Infra: k6 baseline load test, demo-seed script
+
+---
+
+### Phase 6: Favorites + Notifications (2026-05-05)
+
+**Status:** ✅ Completed
+
+**Summary:**
+
+- Migration `20260509000000_phase6_notifications`: 4 enums + 4 tables (`user_favorites`, `notification_rules`, `notification_logs`, `device_tokens`).
+- **Favorites** (`apps/api/src/modules/favorites/`):
+  - `GET /v1/users/me/favorites`, `POST` (with conflict→409 on duplicate), `DELETE /:id`, `PUT /order` (transactional reorder).
+  - Per-user uniqueness on `(user_id, target_type, target_id)`.
+- **Notifications**:
+  - `RuleMatcher`: pure-logic predicate — fires when `minutesUntil ∈ [threshold-1, threshold]`, day-of-week bitmask covers today (Mon=bit0..Sun=bit6), and the local time is outside the rule's quiet-hours window (handles wrap-around, e.g. 22:00→07:00).
+  - `NotificationsService` + `DevicesService`: rule CRUD, log lookup, device token upsert/invalidate.
+  - `NotificationEvaluator` runs every 60s (Cron `'0 * * * * *'`, Europe/Istanbul). Pulls all enabled rules, fetches stop ETAs (Phase 5), filters by route, runs `RuleMatcher`, and dispatches one push per rule per cycle. Idempotency via sha256(`{user_id}:{rule_id}:{eta_unix_rounded_to_60s}`) — replays on worker restart are safe.
+  - `ExpoPushAdapter` posts to `https://exp.host/--/api/v2/push/send`; on `DeviceNotRegistered` the offending token is purged. In `NODE_ENV=test` the adapter returns deterministic mock receipts.
+  - **KVKK**: notification body is generic ("Aracınız 5 dk içinde") — no stop names in the payload (Apple/Google may log push bodies). Details are fetched on tap via deep link.
+  - REST: `/v1/users/me/notification-rules` (GET, POST, PATCH, DELETE, GET /log), `/v1/users/me/devices` (POST, DELETE).
+- **Mobile**:
+  - `(authed)/favorites` screen with empty-state, swipe-style remove, deep-link to stop detail.
+  - Home screen exposes ★ Favorites alongside Search / Map / Profile.
+  - `@app-bus/api-client`: 7 new methods covering favorites, rules, devices.
+
+**Verification:**
+
+- ✅ `pnpm -r typecheck` clean (api + api-client + mobile + types)
+- ✅ `pnpm test` — 82/82 across api (59), api-client (5), types (5), mobile (13)
+- ✅ Phase 6 added 7 RuleMatcher tests covering threshold/slop, day-of-week, quiet-hours both wrapping and non-wrapping
+- ⏭️ Real Expo Push delivery is exercised against the live Expo endpoint in production only; CI uses the test-mode mock receipts
+- ⏭️ Direct FCM/APNs cutover deferred to Phase 8 alongside paid Apple developer account configuration
+
+**Key Outputs:**
+
+- Modules: `favorites`, `notifications`
+- Endpoints (10): favorites (4), notification-rules (5), devices (2 — minus shared)
+- Mobile: `app/(authed)/favorites.tsx`
+
+---
 
 ### Phase 5: ETA Engine (2026-05-05)
 

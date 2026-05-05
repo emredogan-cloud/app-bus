@@ -5,7 +5,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { theme } from '@/shared/theme';
 
 export default function HomeScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
   return (
@@ -24,6 +24,13 @@ export default function HomeScreen() {
         <Link href="/(authed)/search" asChild>
           <Pressable style={[styles.btn, styles.primary]}>
             <Text style={styles.btnPrimaryText}>{t('transit.search.title')}</Text>
+          </Pressable>
+        </Link>
+        <Link href="/(authed)/favorites" asChild>
+          <Pressable style={[styles.btn, styles.secondary]}>
+            <Text style={styles.btnSecondaryText}>
+              ★ {i18n.language === 'en' ? 'Favorites' : 'Favoriler'}
+            </Text>
           </Pressable>
         </Link>
         <Link href="/(authed)/map" asChild>

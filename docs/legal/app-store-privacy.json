@@ -1,0 +1,56 @@
+{
+  "//": "App Store Connect Privacy Questionnaire — copy/paste source of truth.",
+  "//doc": "Reviewed by legal counsel before each store submission. KVKK + Apple privacy guidelines.",
+  "version": "2026-05-05",
+  "data_collected": [
+    {
+      "category": "Contact Info",
+      "types": ["Email Address"],
+      "purposes": ["App Functionality", "Account Management"],
+      "linked_to_user": true,
+      "used_for_tracking": false
+    },
+    {
+      "category": "Identifiers",
+      "types": ["User ID"],
+      "purposes": ["App Functionality", "Account Management"],
+      "linked_to_user": true,
+      "used_for_tracking": false
+    },
+    {
+      "category": "Location",
+      "types": ["Precise Location"],
+      "purposes": ["App Functionality"],
+      "linked_to_user": false,
+      "used_for_tracking": false,
+      "//note": "Used only while app is open; queries anonymized after 30 days."
+    },
+    {
+      "category": "Usage Data",
+      "types": ["Product Interaction", "Crash Data"],
+      "purposes": ["Analytics", "Developer Communications"],
+      "linked_to_user": false,
+      "used_for_tracking": false
+    }
+  ],
+  "data_not_collected": [
+    "Health & Fitness",
+    "Financial Info",
+    "Sensitive Info",
+    "Browsing History",
+    "Search History",
+    "Audio",
+    "Photos or Videos",
+    "Files and Documents",
+    "Contacts",
+    "User Content"
+  ],
+  "third_party_sdks": [
+    { "name": "Sentry", "data_sent": "Crash data (no PII)", "purpose": "Crash reporting" },
+    {
+      "name": "Expo Push",
+      "data_sent": "Push token + notification body (generic, no stop names)",
+      "purpose": "Push delivery"
+    }
+  ]
+}
