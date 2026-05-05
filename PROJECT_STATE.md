@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 9 complete → about to start **Phase 10: Multi-City Expansion**
+**Current Phase:** ✅ Phase 10 complete → about to start **Phase 11: ML ETA**
 
 ---
 
@@ -53,6 +53,39 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 10: Multi-City Expansion (2026-05-05)
+
+**Status:** ✅ Completed
+
+**Summary:**
+
+- Migration `20260510000000_phase10_cities`: `CityCode` enum extended with IZM (İzmir), BUR (Bursa), ANT (Antalya); seeded `cities` rows ON CONFLICT DO NOTHING.
+- `multi-city-importers.ts` factory generates `EshotImporter` (İzmir/ESHOT), `BurulasImporter` (Bursa/BURULAŞ), `AntalyaImporter` (Antalya Büyükşehir) — they reuse the GTFS-Static parser pipeline; each has its own env-configurable URL (`GTFS_ESHOT_URL`, `GTFS_BURULAS_URL`, `GTFS_ANTALYA_URL`).
+- `ImportCron` widened: 5 sources iterated daily, per-operator failure isolation preserved.
+- `apps/mobile/src/shared/cities.ts` — display metadata + `nearestCity(lat, lng)` (haversine pick) for the GPS-based first-launch city detection.
+- `docs/runbooks/new-city.md` — 1-week onboarding playbook (pre-flight → schema audit → migration → importer → mobile picker → validation → rollout → rollback). Used as the template for any future operator/city.
+
+**Verification:**
+
+- ✅ `pnpm -r typecheck` clean
+- ✅ `pnpm test` — 87/87 across api (59) + api-client (5) + types (5) + mobile (18, +5 new for cities/nearestCity)
+- ⏭️ Live import vs each operator depends on the `GTFS_<OP>_URL` envs being set; the factory throws a clear error if one is missing
+
+**Operator tasks (out of scope):**
+
+- Confirm GTFS feed URLs for ESHOT / BURULAŞ / Antalya (or stand up scrapers).
+- Marketing copy + landing page additions for `/sehir/IZM`, `/sehir/BUR`, `/sehir/ANT`.
+- Per-city Datadog dashboards cloned from the IST template.
+
+**Key Outputs:**
+
+- Migration `20260510000000_phase10_cities`
+- 3 new importers via shared factory
+- Runbook `docs/runbooks/new-city.md`
+- Mobile `CITIES` constant + `nearestCity` helper
+
+---
 
 ### Phase 9: Web Dashboard (Next.js 15) (2026-05-05)
 
