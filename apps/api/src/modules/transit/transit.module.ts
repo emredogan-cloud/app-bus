@@ -8,12 +8,22 @@ import { TransitQueryService } from './transit-query.service.js';
 import { ImportService } from './import/import.service.js';
 import { IettImporter } from './import/iett.importer.js';
 import { EgoImporter } from './import/ego.importer.js';
+import { EshotImporter, BurulasImporter, AntalyaImporter } from './import/multi-city-importers.js';
 import { ImportCron } from './import/import.cron.js';
 
 @Module({
   imports: [ScheduleModule.forRoot()],
   controllers: [CitiesController, RoutesController, StopsController, SearchController],
-  providers: [TransitQueryService, ImportService, IettImporter, EgoImporter, ImportCron],
+  providers: [
+    TransitQueryService,
+    ImportService,
+    IettImporter,
+    EgoImporter,
+    EshotImporter,
+    BurulasImporter,
+    AntalyaImporter,
+    ImportCron,
+  ],
   exports: [TransitQueryService, ImportService, IettImporter, EgoImporter],
 })
 export class TransitModule {}

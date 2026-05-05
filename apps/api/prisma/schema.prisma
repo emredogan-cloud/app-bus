@@ -37,6 +37,9 @@ enum DeleteStatus {
 enum CityCode {
   IST
   ANK
+  IZM // Izmir — Phase 10
+  BUR // Bursa — Phase 10
+  ANT // Antalya — Phase 10
 }
 
 enum SourceType {

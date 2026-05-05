@@ -56,9 +56,12 @@ const envSchema = z
     PUBLIC_WEB_URL: z.string().url().default('http://localhost:3000'),
     APP_DEEP_LINK_SCHEME: z.string().default('appbus-dev'),
 
-    // ── Transit static data sources (Phase 2) ──────────────────────────────
+    // ── Transit static data sources (Phase 2 + 10) ────────────────────────
     GTFS_IETT_URL: z.string().url().optional(),
     GTFS_EGO_URL: z.string().url().optional(),
+    GTFS_ESHOT_URL: z.string().url().optional(),
+    GTFS_BURULAS_URL: z.string().url().optional(),
+    GTFS_ANTALYA_URL: z.string().url().optional(),
 
     // ── Live WebSocket / MQTT (Phase 4) ────────────────────────────────────
     MQTT_URL: z.string().url().optional(),
