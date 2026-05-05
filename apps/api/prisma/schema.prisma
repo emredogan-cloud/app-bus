@@ -1,9 +1,10 @@
-// Prisma schema — Phase 0 placeholder.
-// Real auth/users/transit models will be added in Phase 1+.
+// Prisma schema — Phase 1: auth + KVKK.
+// Phases 2+ will add City/Operator/Route/Stop/Vehicle/etc.
 
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
@@ -12,13 +13,132 @@ datasource db {
   extensions = [postgis(version: "3.4"), citext, pg_trgm, unaccent]
 }
 
-// Phase 0 placeholder — User model is fleshed out in Phase 1.
-model User {
-  id         String    @id @default(uuid()) @db.Uuid
-  email      String    @unique @db.Citext
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime  @updatedAt @db.Timestamptz(6)
-  deleted_at DateTime? @db.Timestamptz(6)
+enum Locale {
+  tr
+  en
+}
 
+enum PremiumTier {
+  free
+  premium
+}
+
+enum OAuthProvider {
+  google
+  apple
+}
+
+enum DeleteStatus {
+  active
+  pending_purge // soft-deleted, awaiting 90d purge
+  purged        // PII anonymized
+}
+
+model User {
+  id             String       @id @default(uuid()) @db.Uuid
+  email          String       @unique @db.Citext
+  email_verified Boolean      @default(false)
+  password_hash  String?      // null when only OAuth
+  name           String       @db.VarChar(120)
+  locale         Locale       @default(tr)
+  phone_e164     String?      @db.VarChar(20)
+  premium_tier   PremiumTier  @default(free)
+  delete_status  DeleteStatus @default(active)
+  delete_purge_at DateTime?   @db.Timestamptz(6)
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @updatedAt @db.Timestamptz(6)
+
+  refresh_tokens          RefreshToken[]
+  oauth_identities        OAuthIdentity[]
+  kvkk_consents           KvkkConsent[]
+  email_verification_tokens EmailVerificationToken[]
+  password_reset_tokens   PasswordResetToken[]
+
+  @@index([delete_status, delete_purge_at])
   @@map("users")
+}
+
+// Refresh tokens are tracked by family. Reuse of an already-rotated token in a family
+// invalidates the entire family (suspected theft).
+model RefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String    @db.Uuid
+  family_id   String    @db.Uuid
+  // sha256 of the random secret. The plaintext token returned to the client encodes id|secret.
+  token_hash  String    @unique
+  // Marker if this token was rotated (became parent of a successor in same family)
+  rotated_at  DateTime? @db.Timestamptz(6)
+  // Set when explicit logout / family-wide revocation occurs
+  revoked_at  DateTime? @db.Timestamptz(6)
+  expires_at  DateTime  @db.Timestamptz(6)
+  user_agent  String?   @db.VarChar(255)
+  ip          String?   @db.Inet
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([family_id])
+  @@index([expires_at])
+  @@map("refresh_tokens")
+}
+
+model OAuthIdentity {
+  id               String        @id @default(uuid()) @db.Uuid
+  user_id          String        @db.Uuid
+  provider         OAuthProvider
+  provider_user_id String        @db.VarChar(255)
+  email            String?       @db.Citext
+  created_at       DateTime      @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, provider_user_id])
+  @@index([user_id])
+  @@map("oauth_identities")
+}
+
+// KVKK requires a versioned, immutable record of consent.
+model KvkkConsent {
+  id                String   @id @default(uuid()) @db.Uuid
+  user_id           String   @db.Uuid
+  version           String   @db.VarChar(32)
+  marketing_opt_in  Boolean  @default(false)
+  ip                String?  @db.Inet
+  user_agent        String?  @db.VarChar(255)
+  accepted_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, version])
+  @@map("kvkk_consents")
+}
+
+model EmailVerificationToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash String    @unique
+  expires_at DateTime  @db.Timestamptz(6)
+  used_at    DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash String    @unique
+  expires_at DateTime  @db.Timestamptz(6)
+  used_at    DateTime? @db.Timestamptz(6)
+  ip         String?   @db.Inet
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("password_reset_tokens")
 }

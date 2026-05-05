@@ -1,0 +1,81 @@
+{
+  "app": {
+    "name": "App-Bus",
+    "tagline": "Otobüsü hiç bekleme."
+  },
+  "common": {
+    "continue": "Devam et",
+    "cancel": "Vazgeç",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "loading": "Yükleniyor…",
+    "error": "Bir hata oluştu",
+    "retry": "Tekrar dene",
+    "back": "Geri"
+  },
+  "auth": {
+    "welcome": {
+      "title": "App-Bus'a hoş geldiniz",
+      "subtitle": "Otobüs, metro, tramvay ve vapur için canlı geliş süreleri.",
+      "login": "Giriş yap",
+      "register": "Hesap oluştur",
+      "google": "Google ile devam et",
+      "apple": "Apple ile devam et"
+    },
+    "login": {
+      "title": "Giriş yap",
+      "email": "E-posta",
+      "password": "Şifre",
+      "submit": "Giriş yap",
+      "forgot": "Şifremi unuttum",
+      "no_account": "Hesabın yok mu? Kayıt ol"
+    },
+    "register": {
+      "title": "Hesap oluştur",
+      "name": "Adınız",
+      "email": "E-posta",
+      "password": "Şifre",
+      "submit": "Devam et",
+      "have_account": "Hesabın var mı? Giriş yap"
+    },
+    "kvkk": {
+      "title": "Aydınlatma Metni ve Onay",
+      "intro": "App-Bus, KVKK kapsamında kişisel verilerinizi aşağıdaki amaçlarla işler:",
+      "items": [
+        "Hesap oluşturma ve oturum yönetimi",
+        "Konum tabanlı hizmetler (size en yakın durakların gösterilmesi)",
+        "Sevdiğiniz hatlar için bildirimler"
+      ],
+      "data_residency": "Verileriniz Türkiye'ye yakın AB Frankfurt veri merkezinde işlenir.",
+      "rights": "İstediğiniz an erişim, düzeltme, silme ve veri taşıma haklarınızı kullanabilirsiniz.",
+      "marketing": "Pazarlama iletilerine onay veriyorum (isteğe bağlı).",
+      "accept": "Okudum ve onaylıyorum",
+      "scroll_required": "Devam etmek için metni sonuna kadar okuyun."
+    },
+    "forgot": {
+      "title": "Şifre sıfırlama",
+      "intro": "E-posta adresinizi girin; sıfırlama bağlantısı göndereceğiz.",
+      "submit": "Bağlantı gönder",
+      "sent": "Bu adres kayıtlıysa kısa süre içinde bir e-posta alacaksınız."
+    },
+    "errors": {
+      "invalid_credentials": "E-posta veya şifre hatalı.",
+      "email_taken": "Bu e-posta zaten kayıtlı.",
+      "kvkk_version_mismatch": "KVKK metni güncellendi. Lütfen yeniden onaylayın.",
+      "too_many_login_attempts": "Çok sayıda deneme yapıldı. Bir süre sonra tekrar deneyin.",
+      "network": "Ağ hatası. Bağlantınızı kontrol edin."
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "name": "Ad",
+    "email": "E-posta",
+    "locale": "Dil",
+    "logout": "Çıkış yap",
+    "delete_account": "Hesabı sil",
+    "delete_confirm": "Hesabınız KVKK kapsamında 90 gün içinde tamamen silinecek. Devam edilsin mi?",
+    "delete_confirm_yes": "Evet, sil",
+    "biometric_unlock": "Biyometrik kilit (Premium)",
+    "export_data": "Verilerimi indir"
+  }
+}

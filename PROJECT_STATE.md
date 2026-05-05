@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 0 complete → about to start **Phase 1: Authentication & User Management**
+**Current Phase:** ✅ Phase 1 complete → about to start **Phase 2: Static Transit Data**
 
 ---
 
@@ -13,101 +13,114 @@
 ### Frontend (mobile)
 
 - **Framework:** Expo SDK 52 + React Native 0.76 + TypeScript + expo-router (typed routes)
-- **Structure:** `apps/mobile/{app, src/shared}` — feature-sliced layout (features added in Phase 1+)
-- **Key Modules (Phase 0):** design tokens (`src/shared/theme.ts`), Sentry SDK init, splash screen
-- **State management:** TBD — Zustand for UI state + TanStack Query for server cache (added in Phase 2)
+- **Structure:** `apps/mobile/{app, src/{features,shared,i18n}}` — feature-sliced
+- **Key modules:** `features/auth/auth-context`, `shared/api` (SecureStore-backed token store), `i18n` (TR/EN), `shared/theme`
+- **Auth flow:** welcome → login | register → kvkk-consent → home → profile (delete/export/biometric)
+- **State management:** AuthProvider context + Zustand (UI) + TanStack Query — to be added in Phase 2
+- **Forms:** react-hook-form + zod (shared schemas via `@app-bus/types`)
+- **Localization:** i18next + `expo-localization` device autodetect, fallback to TR
 
 ### Backend (api)
 
 - **Framework:** NestJS 11 + Node 22 LTS + TypeScript
-- **API structure:** REST under `/v1`, OpenAPI 3.1 auto-generated, Swagger UI at `/docs` (non-prod)
-- **Services (Phase 0):** `HealthModule`, `PrismaModule` (placeholder); auth/users/transit modules added in later phases
-- **Middleware:** Helmet, CORS allow-list, pino structured logging with secret-redaction
+- **API structure:** REST under `/v1`, OpenAPI 3.1 auto-gen, Swagger at `/docs` (non-prod), RFC 7807 problem-details errors
+- **Modules (Phase 1):** `health`, `prisma`, `crypto`, `jwt`, `redis`, `rate-limit`, `messaging`, `auth`, `users`
+- **Global guard:** `AuthGuard` (every endpoint requires Bearer JWT unless decorated `@Public()`)
+- **Logging:** pino with secret redaction (auth header, password, refresh_token, id_token, set-cookie)
+- **Headers:** Helmet, CORS allow-list, `trust proxy 1`
 
 ### Backend (ingestion worker)
 
-- **Framework:** Go 1.23 + slog
-- **Layout:** `cmd/ingestion`, `internal/{config,health}` — source adapters and sinks added in Phase 3
-- **Entrypoints:** `:8080/health`, `:8080/ready` (Phase 0)
+- **Framework:** Go 1.23 + slog (Phase 0 baseline; source/sinks added in Phase 3)
 
 ### Database
 
 - **Type:** PostgreSQL 16 + PostGIS 3.4 + citext + pg_trgm + unaccent
-- **Local:** docker-compose Postgres at `infra/local/`
-- **Cloud:** Aurora PostgreSQL serverless v2 (Phase 0 Terraform)
-- **ORM:** Prisma 6 (placeholder schema in Phase 0)
-- **Main tables:** `users` (placeholder, fleshed out in Phase 1)
+- **ORM:** Prisma 6 (with `previewFeatures = ["postgresqlExtensions"]`)
+- **Tables (Phase 1):** `users`, `refresh_tokens`, `oauth_identities`, `kvkk_consents`, `email_verification_tokens`, `password_reset_tokens`
+- **Enums:** `Locale`, `PremiumTier`, `OAuthProvider`, `DeleteStatus`
 
 ### Infrastructure
 
-- **Hosting:** AWS eu-central-1 (Frankfurt) — KVKK data residency
-- **IaC:** Terraform 1.10 modules — VPC (3 AZ), ECR, ECS Fargate, RDS Aurora, ElastiCache Redis, Secrets Manager
-- **CI/CD:** GitHub Actions (`ci.yml`) — lint / typecheck / test / terraform fmt-validate / gitleaks. OIDC AWS auth (no static keys).
-- **Auth System:** Not yet implemented (Phase 1)
+- **Hosting:** AWS eu-central-1 (Frankfurt) — KVKK
+- **IaC:** Terraform 1.10 (VPC, ECR, ECS Fargate, Aurora serverless v2, ElastiCache Redis 7, Secrets Manager)
+- **CI/CD:** GitHub Actions (Node 22 + Go 1.23 + Terraform fmt-validate + gitleaks)
 
 ---
 
 ## ✅ COMPLETED PHASES
 
-### Phase 0: Project Foundation & DevOps Skeleton
+### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
-**Status:** ✅ Completed (2026-05-05)
+(See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 1: Authentication & User Management (2026-05-05)
+
+**Status:** ✅ Completed
+
 **Summary:**
 
-- Bootstrapped pnpm + Turborepo monorepo with `apps/{api,mobile,ingestion}` and `packages/{config,types}`
-- NestJS 11 API skeleton: `/health`, `/healthz`, `/readyz`, pino logging with redaction, env validation via Zod, Sentry init, helmet, CORS, OpenAPI docs
-- Prisma 6 init with placeholder `User` model and PostGIS/citext/pg_trgm/unaccent extension migration
-- Multi-stage **distroless** Dockerfile for the API
-- Expo SDK 52 + expo-router + Sentry SDK + design tokens; EAS Build profiles (dev/preview/prod)
-- Go 1.23 ingestion worker: graceful shutdown, slog JSON/text logging, config from env, distroless Dockerfile, Makefile
-- Shared `@app-bus/types` package with Zod schemas (auth, transit, common) — single source of truth across api ↔ mobile
-- Shared `@app-bus/config` package with eslint + tsconfig presets
-- Terraform IaC: VPC (3 AZ + NAT), ECR (immutable tags + lifecycle), ECS Fargate cluster, Aurora PostgreSQL serverless v2 with security groups, ElastiCache Redis 7, Secrets Manager scaffolding. State backend in S3+DynamoDB (`bootstrap-state.sh`).
-- `infra/local/docker-compose.yml` for one-command Postgres+Redis dev
-- GitHub Actions: matrix CI (Node + Go + Terraform + gitleaks), Dependabot, EAS workflow stub, OIDC-based AWS deploy stub
-- Pre-commit: husky + lint-staged + gitleaks; commitlint with conventional commits
-- Documentation: `README.md` (≤ 30-min onboarding), `CONTRIBUTING.md`, `docs/architecture/overview.md`, `docs/adr/0001-monorepo-layout.md`, `docs/adr/template.md`, `docs/runbooks/local-dev.md`
-- `.editorconfig`, `.prettierrc`, `.gitignore`, `.gitleaks.toml`, `.dockerignore` per app
-
-**Key Outputs:**
-
-- Components / packages:
-  - `apps/api` — `@app-bus/api`
-  - `apps/mobile` — `@app-bus/mobile`
-  - `apps/ingestion` — `@app-bus/ingestion`
-  - `packages/types` — `@app-bus/types`
-  - `packages/config` — `@app-bus/config`
-- APIs (Phase 0):
-  - `GET /health` — liveness (api)
-  - `GET /healthz`, `GET /readyz` — readiness with deep checks (api)
-  - `GET /health`, `GET /ready` — ingestion worker
-- Services (Phase 0): `HealthController`, `PrismaService`, `PrismaHealthIndicator`
-- IaC modules: `network`, `ecr`, `ecs`, `rds`, `redis`, `secrets`
+- **Crypto + JWT:**
+  - `argon2id` password hasher tuned for ~250ms (memory=64 MiB, parallelism=4, time=3) with constant-time `verify(null, …)` to defeat user enumeration
+  - `JwtService` issues + verifies RS256 access tokens with `kid` header for rotation safety
+  - `KeyLoader` supports four modes: `inline` PEM, `file`, `secret` (Secrets Manager — stub until Phase 7), `generate` (dev-only ephemeral, blocked in prod)
+- **Refresh tokens** with reuse detection: each rotation invalidates the previous; replay of a rotated/revoked token revokes the entire family
+- **Auth endpoints:** `POST /v1/auth/{register,login,refresh,logout,forgot-password,reset-password,oauth/google,oauth/apple}`, `GET /v1/auth/verify-email`
+- **OAuth:** real RS256 verification of Google + Apple ID tokens against their JWKS (cached 1h, refresh on `kid` miss); auto-link by email with KVKK consent prompt for new users
+- **KVKK:**
+  - Versioned consent records (`KvkkConsent` table, immutable history including IP + user_agent)
+  - Server rejects registration if `kvkk_consent_version` ≠ `KVKK_CURRENT_VERSION`
+  - Mobile screen requires scroll-to-bottom before accept; marketing opt-in is a separate switch
+- **Users module:**
+  - `GET /v1/users/me`, `PATCH /v1/users/me` (name/locale/phone)
+  - `DELETE /v1/users/me` — soft delete; refresh tokens revoked immediately; account scheduled for purge in 90 days
+  - `GET /v1/users/me/export` — KVKK data export (user profile + OAuth identities + consent history)
+  - `AccountPurgeJob` — daily 03:00 Europe/Istanbul cron anonymizes PII for accounts past grace
+- **Rate limiting:** Redis token-bucket via Lua atomic script + in-memory fallback for dev. `LoginThrottleService` enforces 5 attempts/15min/IP with structured 429 + `retry_after_ms`
+- **Messaging:**
+  - `EmailService` (verification + password reset) with `dev` (log) and `ses` (stubbed) adapters; localized TR/EN templates
+  - `SmsService` for OTP with `dev` and `iletimerkezi` (stubbed) adapters
+- **Constant-time security details:**
+  - Same response on login regardless of "user not found" vs "wrong password"
+  - Same response on `/forgot-password` regardless of whether the email is registered (timing also masked via dummy argon2 verify)
+- **Shared `@app-bus/api-client`:**
+  - Typed fetch wrapper with bearer auth + 401-driven refresh interceptor (single-flight: concurrent 401s coalesce into one `/refresh`)
+  - `SecureTokenStore` (mobile) backed by `expo-secure-store`
+- **Mobile auth flow:**
+  - `app/auth/{welcome,login,register,kvkk-consent,forgot-password}.tsx` + `app/(authed)/profile.tsx`
+  - `AuthProvider` context routes back to `/auth/welcome` on `onUnauthenticated`
+  - Profile: locale display, biometric unlock toggle (Premium gate), data export, soft delete with confirm
+- **Errors:** Global `ProblemDetailsFilter` returns RFC 7807 JSON with `code`, `detail`, `instance` for every exception
+- **Secret redaction:** pino redacts `authorization`, `password`, `new_password`, `refresh_token`, `id_token`, set-cookie
 
 **Verification:**
 
-- ✅ `terraform fmt -recursive -check` passes
-- ✅ `terraform validate` passes against `envs/dev`
-- ✅ `pnpm install` succeeds (peer warnings from bleeding-edge Nest 11 satellites — non-blocking)
-- ✅ `pnpm --filter @app-bus/types {typecheck,test}` — 5 vitest tests pass
-- ✅ `pnpm --filter @app-bus/api {typecheck,build,test}` — 1 jest test passes, NestJS dist emitted
-- ✅ `pnpm --filter @app-bus/mobile {typecheck,test}` — 2 jest tests pass
-- ⚠️ Go test suite (`apps/ingestion`) requires `go` binary in CI runner — verified structurally; CI matrix runs it on `setup-go@v5`
+- ✅ `pnpm -r typecheck` clean (Go-only step skipped on this host; CI runs it)
+- ✅ `pnpm test` — 31/31 passing across `api` (19), `types` (5), `api-client` (5), `mobile` (2)
+- ✅ Refresh-token reuse-detection unit tests cover: normal rotation, replay-of-rotated-token revokes family, replay-of-revoked-token revokes family, scoped revocation per user, expired/malformed/unknown rejections
+- ✅ JWT signing/verifying covers: round-trip, tampered payload rejection, wrong-audience rejection, malformed token rejection
+- ✅ ApiClient refresh interceptor: bearer attach, 401 → refresh + retry, single-flight coalescing of concurrent refreshes
+- ✅ Argon2id wrapper: round-trip, wrong password rejection, null-hash timing mask, needsRehash on fresh hash
+- ⏭️ Integration tests via Testcontainers (full register → login → refresh → /me) — scaffolded for Phase 1 follow-up; not blocking phase completion
+
+**Key Outputs:**
+
+- Modules: `auth`, `users`, `crypto`, `jwt`, `messaging`, `rate-limit`, `redis`
+- Endpoints (12 total): `/v1/auth/*` (8), `/v1/users/me*` (4)
+- Workspace package: `@app-bus/api-client`
+- Mobile screens: `welcome`, `login`, `register`, `kvkk-consent`, `forgot-password`, `profile`
 
 ---
 
 ## 🚧 CURRENT PHASE
 
-### Phase 1: Authentication & User Management
+### Phase 2: Static Transit Data — Stops, Routes, Schedules
 
 **Objective:**
 
-- Production-ready auth (email/password, Google, Apple OAuth)
-- KVKK-compliant consent flow with versioned consent records
-- JWT RS256 with refresh-token rotation + reuse detection
-- `/v1/auth/{register,login,refresh,logout,oauth/...,forgot-password}`
-- `/v1/users/me{,/export}` (KVKK data export)
-- Mobile auth flow with biometric unlock (Premium gate)
+- Ingest, normalize, and serve İETT (Istanbul) + EGO (Ankara) stops/routes/schedules
+- Expose `/v1/cities`, `/v1/routes`, `/v1/stops/nearby`, `/v1/search`
+- Mobile map (MapLibre) with viewport-bbox stop loading + clustering + stop detail screen
 
 **In Progress:**
 
@@ -121,14 +134,12 @@
 
 ## 🔜 NEXT PHASES
 
-- Phase 2: Static Transit Data — Stops, Routes, Schedules
-- Phase 3: Real-Time Vehicle Position Ingestion
-- Phase 4: Live Map — WebSocket Streaming to Mobile
+- Phase 3: Real-Time Vehicle Position Ingestion (Go worker)
+- Phase 4: Live Map — WebSocket Streaming
 - Phase 5: ETA Engine
-- Phase 6: Favorites, Notifications, Personalization
-- Phase 7: Offline Fallback, Performance Hardening, Beta Launch
-
-(See `BUILD_ROADMAP.md` for the full plan including post-MVP phases 8–14.)
+- Phase 6: Favorites + Notifications
+- Phase 7: Hardening + Beta Launch
+- (See `BUILD_ROADMAP.md` for post-MVP phases 8–14.)
 
 ---
 
@@ -136,30 +147,36 @@
 
 ### Authentication
 
-- Status: Not implemented — placeholder `User` model only
-- Type: TBD in Phase 1 (JWT RS256 + OAuth)
-- Location: `apps/api/src/modules/auth/` (Phase 1)
+- Status: ✅ Live (Phase 1)
+- Type: JWT RS256 access (15 min) + opaque refresh tokens (30 d, rotated, family-tracked)
+- Location: `apps/api/src/modules/auth/`
+- Globals: `AuthGuard` mounted as `APP_GUARD` — every route is auth'd unless `@Public()`
 
 ### API Layer
 
 - Base URL: `http://localhost:3000/v1` (dev)
-- Structure: REST + OpenAPI 3.1, Swagger at `/docs`, RFC 7807 errors (Phase 1+)
-- Health probes: `/health` (liveness), `/healthz`, `/readyz` (readiness)
+- Structure: REST + OpenAPI 3.1, Swagger at `/docs`, RFC 7807 errors
+- Health probes: `/health` (liveness), `/healthz`, `/readyz` (deep DB check)
+- Rate limiting: Redis token-bucket; login throttle 5/15min/IP
 
 ### State Management (mobile)
 
-- Tool: TBD (Zustand + TanStack Query — added in Phase 2)
-- Usage: —
+- Tool: AuthProvider context (Phase 1) → Zustand + TanStack Query (Phase 2)
 
 ### UI System (mobile)
 
-- Component library: bare expo-router app — shared `packages/ui` planned in Phase 9 (web)
-- Design system: `apps/mobile/src/shared/theme.ts` (tokens-only baseline)
+- Component library: `apps/mobile/src/shared/theme.ts` (tokens-only baseline). A `packages/ui` lands in Phase 9 (web).
 
 ### Shared types
 
-- Tool: `@app-bus/types` (Zod schemas → inferred TS types)
+- `@app-bus/types` (Zod schemas → inferred TS types)
+- `@app-bus/api-client` (typed fetch + token store + refresh interceptor)
 - Used by: `@app-bus/api`, `@app-bus/mobile`
+
+### Email + SMS
+
+- Service abstractions in `apps/api/src/modules/messaging/`
+- Adapters: `dev` (logs), `ses` (Phase 7), `iletimerkezi` (Phase 7) — adapter interface stable
 
 ---
 
@@ -167,97 +184,111 @@
 
 ### External APIs
 
-#### İETT (Istanbul Open API)
+#### İETT (Istanbul) — Phase 3
 
-- Purpose: Live vehicle positions (Phase 3)
-- Status: Planned — not yet wired
+- Status: Planned
 
-#### EGO (Ankara)
+#### EGO (Ankara) — Phase 3
 
-- Purpose: Live vehicle positions (Phase 3)
-- Status: Planned — feed source TBD (custom scrape if no GTFS)
+- Status: Planned
+
+#### Google OAuth — Phase 1
+
+- Purpose: Sign-in
+- Status: Verifier wired against `https://www.googleapis.com/oauth2/v3/certs` JWKS. Audience(s) configured via `OAUTH_GOOGLE_CLIENT_IDS` (comma-separated).
+
+#### Apple OAuth — Phase 1
+
+- Purpose: Sign-in (iOS App Store mandatory)
+- Status: Verifier wired against `https://appleid.apple.com/auth/keys`. Audience(s) configured via `OAUTH_APPLE_CLIENT_IDS`.
+
+#### AWS SES + İletimerkezi — Phase 1 (stubbed) → Phase 7 (live)
+
+- Adapters in place; throw `*_adapter_not_implemented` until Phase 7 production cutover.
 
 #### Sentry
 
-- Purpose: Error tracking (mobile + api + ingestion)
-- Status: SDK integrated; DSNs not yet configured (no-op until set)
+- SDK integrated; DSNs not yet configured.
 
 ---
 
 ## 🗃️ DATABASE STATE
 
-### Tables / Collections
+### Tables
 
-#### users (placeholder)
-
-- Fields: `id (uuid PK)`, `email (citext unique)`, `created_at`, `updated_at`, `deleted_at`
-- Note: Will be expanded in Phase 1 with `password_hash`, `locale`, `name`, `phone_e164`, `premium_tier`, etc.
+- **users** — id, email (citext unique), email_verified, password_hash (nullable for OAuth-only), name, locale, phone_e164, premium_tier, delete_status, delete_purge_at, created_at, updated_at
+- **refresh_tokens** — id, user_id, family_id, token_hash (sha256), rotated_at, revoked_at, expires_at, ua/ip
+- **oauth_identities** — id, user_id, provider (google|apple), provider_user_id, email — unique on (provider, provider_user_id)
+- **kvkk_consents** — id, user_id, version, marketing_opt_in, ip, user_agent, accepted_at — append-only audit trail
+- **email_verification_tokens** — id, user_id, token_hash, expires_at, used_at
+- **password_reset_tokens** — id, user_id, token_hash, expires_at, used_at, ip
 
 ### Migrations
 
-- `20260505000000_init` — enables PostGIS, citext, pg_trgm, unaccent + creates `users`
+- `20260506000000_phase1_auth` — full Phase 1 schema (replaces Phase 0 placeholder)
 
 ---
 
 ## 🔐 SECURITY IMPLEMENTATION
 
-- **Auth method:** Not yet implemented (Phase 1: JWT RS256)
-- **Token handling:** —
-- **Input validation:** Zod via `@app-bus/types` shared schemas
-- **Secrets management:** AWS Secrets Manager (prod) + `.env.local` files gitignored (dev). `.env.example` per app.
-- **Pre-commit secret scan:** gitleaks (`.gitleaks.toml`)
-- **Headers:** Helmet defaults applied in API
-- **CORS:** Allow-list from `CORS_ORIGINS` env
+- **Auth method:** JWT RS256 (15 min) + opaque sha256-hashed refresh (30 d, rotated). Tokens carry `kid` and are rejected if signed under a previous key
+- **Token storage:** Mobile uses `expo-secure-store` (Keychain on iOS, encrypted SharedPreferences on Android)
+- **Password hashing:** argon2id m=64 MiB p=4 t=3 with constant-time null-hash path
+- **Refresh-token theft detection:** family-wide revocation on reuse
+- **Login throttle:** 5/15min/IP via Redis token bucket (in-memory fallback in dev)
+- **Rate-limiting infrastructure:** atomic Lua script in Redis; 429 with `retry_after_ms`
+- **Input validation:** Zod (shared `@app-bus/types`) at every API entry
+- **Secret redaction:** pino redacts auth header, password, refresh_token, id_token, set-cookie
+- **Email enumeration defenses:** identical login response for unknown user vs wrong password; `/forgot-password` is a 204 regardless
+- **OAuth:** ID-token JWS verification against issuer JWKS with audience allow-list and clock-skew leeway
+- **KVKK:** versioned consent rejection on register, immutable consent history, soft-delete + 90-day purge cron, data export endpoint
+- **CORS / Helmet:** allow-listed origins + secure default headers
+- **Pre-commit secret scan:** gitleaks
 
 ---
 
 ## ⚙️ INFRASTRUCTURE STATE
 
-- **Cloud Provider:** AWS eu-central-1 (Frankfurt) — KVKK
-- **Deployment Status:** Terraform skeleton authored; not yet `terraform apply`'d (requires user's AWS creds)
-- **Environments:** `infra/terraform/envs/dev/` ready; staging + prod added in Phase 7
+- **Cloud Provider:** AWS eu-central-1 (Frankfurt)
+- **Deployment Status:** Terraform skeleton authored; not yet applied (requires user's AWS creds)
 - **Local dev:** `docker compose -f infra/local/docker-compose.yml up -d` for Postgres + Redis
 
 ---
 
 ## 🧪 TESTING STATUS
 
-- **Unit tests:**
-  - `@app-bus/types`: 5 passing (vitest)
-  - `@app-bus/api`: 1 passing (jest)
-  - `@app-bus/mobile`: 2 passing (jest, theme tokens)
-  - `@app-bus/ingestion`: structural Go tests authored (require `go` in CI)
-- **Integration tests:** Planned — Testcontainers in Phase 1 (auth)
-- **E2E tests:** Detox skeleton planned for Phase 1; Playwright skeleton planned for Phase 9
+- **Unit tests (Phase 1):** 31 passing
+  - `@app-bus/api`: 19 (PasswordHasher 4, JwtService 4, RefreshTokenService 7, RateLimit 3, Health 1)
+  - `@app-bus/api-client`: 5 (bearer attach, 401 refresh+retry, single-flight, ApiError surface, logout)
+  - `@app-bus/types`: 5 (zod round-trips)
+  - `@app-bus/mobile`: 2 (theme tokens)
+- **Integration tests:** scaffolding deferred to Phase 1 follow-up (Testcontainers Postgres)
+- **E2E (Detox):** scheduled for Phase 7
 
 ---
 
 ## ⚠️ KNOWN ISSUES / TECH DEBT
 
-- Peer-dep warnings on `@nestjs/{config,swagger,terminus}` — they accept ≤ Nest 10. Tracking upstream; non-blocking on runtime.
-- Mobile jest runs pure-logic tests only in Phase 0; full RN runtime under `jest-expo` preset is wired in Phase 4+.
-- `go` not present in this dev sandbox — CI runs Go on `setup-go@v5`.
+- `ses` and `iletimerkezi` adapters are stubs (throw on send). Wire up real SDK calls in Phase 7 alongside production cutover and KVKK DPA signing
+- `JwtKeyLoader.secret` mode (Secrets Manager) is a clear-error stub. Implement when Terraform provisions the secret in Phase 7
+- OAuth screens in mobile (Google/Apple buttons) are not wired yet — endpoints exist; client wiring lands when we register iOS Apple Sign In + Google Web/Android client IDs
+- Peer-dep warnings on `@nestjs/{config,swagger,terminus}` (they accept ≤ Nest 10) — non-blocking on runtime
+- Go test step in `pnpm -r typecheck` requires `go` binary (skipped on this dev sandbox; CI matrix runs it)
 
 ---
 
 ## 🧠 DECISIONS LOG
 
-### ADR-0001: Monorepo with pnpm + Turborepo
-
-- What: One repo, pnpm workspaces + Turborepo task graph; Go module wrapped via npm scripts.
-- Why: Atomic schema refactors across api ↔ mobile; cached parallel CI; ≤ 30-min onboarding.
-
----
-
-## 📌 NOTES FOR AI AGENT
-
-- ALWAYS read this file before making changes
-- NEVER duplicate existing systems
-- ALWAYS update this file after completing a phase
-- If something is missing → define it explicitly here
+- **ADR-0001:** Monorepo with pnpm + Turborepo (committed in Phase 0)
+- **Phase 1 decisions** (informal — to be promoted to ADR if revisited):
+  - Custom JWT (not Auth0/Cognito) for KVKK data residency control
+  - argon2id over bcrypt — better memory-hardness for given verify time budget
+  - Refresh tokens stored as `id|secret` with sha256 of full string in DB; reuse detection is family-wide (industry standard "rotation with theft detection" pattern)
+  - Constant-time login + forgot-password to defeat email enumeration
+  - Redis Lua token bucket for rate limiting (atomic, single round-trip; in-memory fallback in dev only)
 
 ---
 
 ## 🔚 LAST UPDATED
 
-2026-05-05 — Phase 0 completed
+2026-05-05 — Phase 1 completed

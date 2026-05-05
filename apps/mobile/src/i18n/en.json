@@ -1,0 +1,81 @@
+{
+  "app": {
+    "name": "App-Bus",
+    "tagline": "Never wait at the stop."
+  },
+  "common": {
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "back": "Back"
+  },
+  "auth": {
+    "welcome": {
+      "title": "Welcome to App-Bus",
+      "subtitle": "Live ETAs for buses, metros, trams, and ferries.",
+      "login": "Sign in",
+      "register": "Create account",
+      "google": "Continue with Google",
+      "apple": "Continue with Apple"
+    },
+    "login": {
+      "title": "Sign in",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "forgot": "Forgot password?",
+      "no_account": "No account? Register"
+    },
+    "register": {
+      "title": "Create account",
+      "name": "Your name",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Continue",
+      "have_account": "Have an account? Sign in"
+    },
+    "kvkk": {
+      "title": "Privacy notice & consent",
+      "intro": "Under KVKK and GDPR, App-Bus processes your personal data for:",
+      "items": [
+        "Account creation and session management",
+        "Location-based features (showing nearby stops)",
+        "Notifications for your favorite routes"
+      ],
+      "data_residency": "Data is processed in AWS Frankfurt (eu-central-1).",
+      "rights": "You can request access, correction, deletion, or data export at any time.",
+      "marketing": "I agree to marketing communications (optional).",
+      "accept": "I have read and accept",
+      "scroll_required": "Please scroll to the end to continue."
+    },
+    "forgot": {
+      "title": "Reset password",
+      "intro": "Enter your email and we'll send a reset link.",
+      "submit": "Send link",
+      "sent": "If that address is registered, you'll receive an email shortly."
+    },
+    "errors": {
+      "invalid_credentials": "Email or password is incorrect.",
+      "email_taken": "This email is already registered.",
+      "kvkk_version_mismatch": "The privacy notice was updated — please re-accept.",
+      "too_many_login_attempts": "Too many attempts. Please try again later.",
+      "network": "Network error. Check your connection."
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "name": "Name",
+    "email": "Email",
+    "locale": "Language",
+    "logout": "Sign out",
+    "delete_account": "Delete account",
+    "delete_confirm": "Your account will be permanently deleted within 90 days under KVKK. Continue?",
+    "delete_confirm_yes": "Yes, delete",
+    "biometric_unlock": "Biometric unlock (Premium)",
+    "export_data": "Export my data"
+  }
+}

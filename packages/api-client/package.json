@@ -1,0 +1,28 @@
+{
+  "name": "@app-bus/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed fetch wrapper with bearer auth + 401-driven refresh interceptor (single-flight)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --emitDeclarationOnly --declaration --outDir dist"
+  },
+  "dependencies": {
+    "@app-bus/types": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@app-bus/config": "workspace:*",
+    "eslint": "^9.13.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

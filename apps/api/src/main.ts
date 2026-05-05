@@ -6,6 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { initSentry } from './config/sentry.js';
 import { AppModule } from './app.module.js';
+import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 
 async function bootstrap(): Promise<void> {
   initSentry();
@@ -22,6 +23,11 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
   app.setGlobalPrefix('v1', { exclude: ['health', 'healthz', 'readyz'] });
+  app.useGlobalFilters(
+    new ProblemDetailsFilter(config.get<string>('PUBLIC_API_URL', 'http://localhost:3000')),
+  );
+  // Populate req.ip from X-Forwarded-For (CloudFront / API Gateway)
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   app.enableShutdownHooks();
 
   if (config.get<string>('NODE_ENV') !== 'production') {

@@ -65,6 +65,7 @@ const config: ExpoConfig = {
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000',
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+    kvkkVersion: process.env.EXPO_PUBLIC_KVKK_VERSION ?? '2026-05-05',
     eas: {
       projectId: process.env.EAS_PROJECT_ID,
     },
