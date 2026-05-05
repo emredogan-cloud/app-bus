@@ -14,6 +14,7 @@ import { MessagingModule } from './modules/messaging/messaging.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { TransitModule } from './modules/transit/transit.module.js';
+import { LiveModule } from './modules/live/live.module.js';
 import { AuthGuard } from './modules/auth/auth.guard.js';
 
 @Module({
@@ -59,6 +60,7 @@ import { AuthGuard } from './modules/auth/auth.guard.js';
     AuthModule,
     UsersModule,
     TransitModule,
+    LiveModule,
   ],
   providers: [
     // Global guard: every endpoint requires auth unless decorated with @Public().

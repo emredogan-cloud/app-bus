@@ -59,6 +59,11 @@ const envSchema = z
     // ── Transit static data sources (Phase 2) ──────────────────────────────
     GTFS_IETT_URL: z.string().url().optional(),
     GTFS_EGO_URL: z.string().url().optional(),
+
+    // ── Live WebSocket / MQTT (Phase 4) ────────────────────────────────────
+    MQTT_URL: z.string().url().optional(),
+    WS_BBOX_MAX_DIAGONAL_KM: z.coerce.number().positive().default(50),
+    WS_MAX_SUBS_PER_CONN: z.coerce.number().int().positive().default(50),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.JWT_KEY_SOURCE === 'generate') {

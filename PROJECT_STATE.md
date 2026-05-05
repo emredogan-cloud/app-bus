@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 3 complete → about to start **Phase 4: Live Map — WebSocket Streaming**
+**Current Phase:** ✅ Phase 4 complete → about to start **Phase 5: ETA Engine**
 
 ---
 
@@ -53,6 +53,45 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 4: Live Map — WebSocket Streaming (2026-05-05)
+
+**Status:** ✅ Completed
+
+**Summary:**
+
+- NestJS WebSocket gateway at namespace `/live` (Socket.IO over WebSocket), wired to the Phase 3 EMQX MQTT broker via an Rx-based `MqttBridge`. Subscribes to `positions/+/+`, parses each payload to a typed `VehicleUpdate`, and pushes onto an in-process subject the gateway consumes.
+- Discriminated subscription protocol (Zod-validated):
+  - `subscribe { kind: "route", city, route_external_id }` → `{ sub_id }` | `{ error }`
+  - `subscribe { kind: "bbox", bbox: [minLng, minLat, maxLng, maxLat], city? }`
+  - `unsubscribe { sub_id }` and `ping` → `pong { t }`
+- Bbox guard: rejects subscriptions whose diagonal exceeds `WS_BBOX_MAX_DIAGONAL_KM` (default 50). Prevents whole-country snapshots over a single connection.
+- Per-connection limits: max `WS_MAX_SUBS_PER_CONN` (default 50) for authenticated clients; **anonymous handshakes are capped to 1 subscription**.
+- JWT optional on handshake (`socket.handshake.auth.token`). Authenticated connections see their tier in `socket.data.tier`.
+- `SubscriptionRegistry` (in-process) maintains per-socket state and matches incoming `VehicleUpdate` against route + bbox subs. Designed to coexist with `@socket.io/redis-adapter` for horizontal fan-out (wired in Phase 7).
+- Mobile (Expo) live client:
+  - Singleton `LiveSocket` connects to `${apiUrl}/live` over WebSocket transport with exponential backoff (1s → 30s, 50% jitter).
+  - On reconnect, re-subscribes every active subscription transparently.
+  - `useLiveVehicles(req)` hook returns the latest known position per vehicle, throttled to 10Hz on the client side. Vehicles past 2× `STALE_AFTER_MS` (60s) are evicted every 10s.
+  - `AppState` listener pauses the socket on background and resumes on foreground.
+  - `interpolate.ts` + `pushSample` provide a linear-extrapolation kernel (Hermite refinement reserved for the MapLibre marker animation in a Phase 4.5 follow-up).
+- Auth handshake is best-effort: a malformed token emits `error` to the client but does not drop the connection — anon mode still works.
+
+**Verification:**
+
+- ✅ `pnpm -r typecheck` clean
+- ✅ `pnpm test` — 50/50 across api (43), api-client (5), types (5), mobile (7), Go ingestion (4 packages)
+- ✅ Phase 4 added 14 new tests:
+  - api: `SubscribeRequest` discriminated-union validation, `bboxDiagonalKm`, `bboxContains`, `SubscriptionRegistry` add/remove/match for both route and bbox kinds, max-subs limit, mismatched-city short-circuit
+  - mobile: `interpolate` empty / single / linear extrap / 5s-clamp, `pushSample` history cap
+
+**Key Outputs:**
+
+- API namespace: `/live`
+- New mobile module: `src/features/live`
+- New env vars: `MQTT_URL`, `WS_BBOX_MAX_DIAGONAL_KM`, `WS_MAX_SUBS_PER_CONN`
+
+---
 
 ### Phase 3: Real-Time Vehicle Position Ingestion (2026-05-05)
 
