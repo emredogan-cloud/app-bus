@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# Pre-commit hook: run lint-staged for formatting and gitleaks for secret scan.
+set -eu
+
+# Format only changed files
+npx --no-install lint-staged
+
+# Block secrets (gitleaks must be installed locally — see CONTRIBUTING.md).
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner
+else
+  echo "[pre-commit] gitleaks not installed — skipping secret scan."
+  echo "[pre-commit] Install: https://github.com/gitleaks/gitleaks#installing"
+fi

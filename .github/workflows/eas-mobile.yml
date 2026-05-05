@@ -1,0 +1,27 @@
+name: eas-mobile
+
+# Trigger on tag pushes (e.g., mobile-v0.1.0). Stub in Phase 0.
+on:
+  push:
+    tags:
+      - 'mobile-v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: EAS Build (stub)
+        env:
+          EXPO_TOKEN: '${{ secrets.EXPO_TOKEN }}'
+        run: echo "Phase 0 stub. Replace with - npx eas-cli build --platform all --profile preview"

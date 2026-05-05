@@ -1,0 +1,14 @@
+{
+  "name": "@app-bus/ingestion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Go ingestion worker (npm scripts wrap go for Turborepo)",
+  "scripts": {
+    "build": "go build -o bin/ingestion ./cmd/ingestion",
+    "dev": "go run ./cmd/ingestion",
+    "lint": "go vet ./...",
+    "typecheck": "go vet ./...",
+    "test": "go test -race -count=1 ./...",
+    "clean": "rm -rf bin coverage.out"
+  }
+}

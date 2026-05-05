@@ -1,0 +1,32 @@
+# Local development dependencies for the api + ingestion + eta-engine apps.
+# Postgres has PostGIS, citext, pg_trgm, unaccent enabled for parity with production Aurora.
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: app_bus
+      POSTGRES_PASSWORD: app_bus
+      POSTGRES_DB: app_bus
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U app_bus -d app_bus']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres-data:

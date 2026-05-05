@@ -1,0 +1,37 @@
+# gitleaks config — denies common secret patterns.
+title = "app-bus gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aws-access-key-id"
+description = "AWS Access Key ID"
+regex = '''(?i)AKIA[0-9A-Z]{16}'''
+tags = ["aws", "credentials"]
+
+[[rules]]
+id = "rsa-private-key"
+description = "RSA / OpenSSH private key block"
+regex = '''-----BEGIN ((RSA|OPENSSH|EC|DSA) )?PRIVATE KEY-----'''
+tags = ["key", "credentials"]
+
+[[rules]]
+id = "iett-api-key-placeholder"
+description = "İETT API key (placeholder pattern)"
+regex = '''iett[_-]?api[_-]?key\s*=\s*['"][A-Za-z0-9_\-]{20,}['"]'''
+tags = ["api", "credentials"]
+
+[allowlist]
+description = "Allow well-known fixtures and example files"
+paths = [
+  '''(?i).*\.env\.example$''',
+  '''(?i).*terraform\.tfvars\.example$''',
+  '''(?i)^docs/''',
+  '''(?i)^.*test.*fixtures.*$''',
+]
+regexes = [
+  # Common harmless placeholders
+  '''AKIAIOSFODNN7EXAMPLE''',
+  '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''',
+]

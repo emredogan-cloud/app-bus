@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Validate commit messages against conventional-commit + project conventions.
+set -eu
+npx --no-install commitlint --edit "$1"

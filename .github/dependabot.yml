@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 10
+    groups:
+      types:
+        patterns: ['@types/*']
+      lint:
+        patterns: ['eslint*', '@typescript-eslint/*', 'prettier*']
+      nest:
+        patterns: ['@nestjs/*']
+
+  - package-ecosystem: 'gomod'
+    directory: '/apps/ingestion'
+    schedule:
+      interval: 'weekly'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+
+  - package-ecosystem: 'terraform'
+    directory: '/infra/terraform'
+    schedule:
+      interval: 'monthly'

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.next/
+.expo/
+.turbo/
+coverage/
+pnpm-lock.yaml
+*.min.js
+*.min.css
+.env
+.env.*
+!.env.example
+**/prisma/migrations/
+infra/terraform/**/.terraform/
+ios/
+android/

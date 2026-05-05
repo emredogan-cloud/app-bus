@@ -1,0 +1,29 @@
+name: deploy-staging
+
+# Stub for Phase 0. Real deployments are wired in Phase 7 (hardening).
+# Demonstrates OIDC-based AWS auth pattern (no long-lived keys).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: 'arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-staging'
+          aws-region: eu-central-1
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Echo only — no real build in Phase 0
+        run: echo "Phase 0 stub. Real build/push wired in Phase 7."
