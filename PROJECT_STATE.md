@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 1 complete → about to start **Phase 2: Static Transit Data**
+**Current Phase:** ✅ Phase 2 complete → about to start **Phase 3: Real-Time Vehicle Position Ingestion**
 
 ---
 
@@ -53,6 +53,46 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 2: Static Transit Data (2026-05-05)
+
+**Status:** ✅ Completed
+
+**Summary:**
+
+- Prisma models + migration `20260507000000_phase2_transit`: `City`, `Operator`, `Route` (LINESTRING shape), `Stop` (POINT, GIST-indexed), `RouteStop` (sequence/direction/distance_along_shape_m), `ScheduleEntry`, `ImportRun`. Seeds Istanbul + Ankara cities.
+- PostGIS geometry columns added via raw SQL (Prisma doesn't model geometry); auto-syncing `stops.location` trigger from lat/lng.
+- pg_trgm + unaccent GIN indexes on stop names + route codes/names for Turkish-aware fuzzy search.
+- GTFS-Static parser (`adm-zip` + RFC 4180 CSV) — reads agency/routes/stops/trips/stop_times/calendar/shapes; folds Turkish characters in canonical names so "Kadıköy" matches "Kadikoy" in dedupe.
+- `IettImporter` (env-configurable URL) and `EgoImporter` (same interface; documented community-mirror fallback) with circuit-breaker-ready `StaticImporter` interface.
+- `ImportService` runs idempotent upserts: stops dedupe within 30m of same canonical name → soft-deactivate missing rows; routes upsert + LINESTRING shape via raw SQL; route_stops + schedule_entries fully rewritten per import; `distance_along_shape_m` precomputed via PostGIS `ST_LineLocatePoint` for Phase 5 ETA.
+- Drop-ratio detection: any import that drops > 5% of stops or routes is logged as a warning (will page in Phase 7 alerting).
+- `ImportCron` runs daily 02:30 Europe/Istanbul; per-operator failures are isolated and recorded in `import_runs`.
+- REST endpoints (all `@Public()`):
+  - `GET /v1/cities` (cached at edge)
+  - `GET /v1/cities/:code/routes?mode=bus|metro|... &cursor=&limit=`
+  - `GET /v1/routes/:id` — includes encoded polyline shape, Cache-Control 5min + SWR 1h
+  - `GET /v1/stops/nearby?lat=&lng=&radius_m=&limit=` — uses `ST_DWithin` against the GIST index, returns sorted-by-distance
+  - `GET /v1/stops/:id` — includes lines passing through with directions
+  - `GET /v1/search?q=&city=&limit=` — pg_trgm `%` operator + unaccent on lower-cased text, ranks by similarity
+- Shared `@app-bus/api-client` extended with typed transit methods.
+- Mobile screens: `(authed)/search` (debounced 300ms, route + stop sections), `stops/[id]` (header + lines grouped by direction), `(authed)/map` placeholder with documented MapLibre wire-up TODO. Home screen now exposes Search + Map + Profile entrypoints.
+
+**Verification:**
+
+- ✅ `pnpm -r typecheck` clean (Go-only step skipped on this host)
+- ✅ `pnpm test` — 41/41 passing across api (29), api-client (5), types (5), mobile (2)
+- ✅ Phase 2 added 10 tests (CSV parser 6, dedupe 4 incl. Turkish-character folding)
+- ⏭️ Live import vs İETT requires `GTFS_IETT_URL` set in production; tested locally with sample GTFS fixtures only
+
+**Key Outputs:**
+
+- Modules: `transit` (5 controllers + import pipeline + cron)
+- Endpoints: 6
+- Workspace package: `@app-bus/api-client` (transit methods added)
+- Mobile screens: `search`, `stops/[id]`, `map` (placeholder)
+
+---
 
 ### Phase 1: Authentication & User Management (2026-05-05)
 

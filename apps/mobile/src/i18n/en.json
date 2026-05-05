@@ -66,6 +66,25 @@
       "network": "Network error. Check your connection."
     }
   },
+  "transit": {
+    "search": {
+      "title": "Search",
+      "placeholder": "Search a stop or route…",
+      "stops": "Stops",
+      "routes": "Routes",
+      "empty": "No results",
+      "min_chars": "Type at least 2 characters"
+    },
+    "stop": {
+      "lines": "Lines passing through",
+      "no_lines": "No line data yet",
+      "directions": { "outbound": "Outbound", "inbound": "Inbound" }
+    },
+    "map": {
+      "coming_soon": "Map coming soon",
+      "placeholder_msg": "MapLibre + Protomaps tiles wired in Phase 4."
+    }
+  },
   "profile": {
     "title": "Profile",
     "name": "Name",

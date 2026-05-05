@@ -55,6 +55,10 @@ const envSchema = z
     PUBLIC_API_URL: z.string().url().default('http://localhost:3000'),
     PUBLIC_WEB_URL: z.string().url().default('http://localhost:3000'),
     APP_DEEP_LINK_SCHEME: z.string().default('appbus-dev'),
+
+    // ── Transit static data sources (Phase 2) ──────────────────────────────
+    GTFS_IETT_URL: z.string().url().optional(),
+    GTFS_EGO_URL: z.string().url().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.JWT_KEY_SOURCE === 'generate') {

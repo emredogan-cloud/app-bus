@@ -65,6 +65,9 @@ function RootLayout() {
             <Stack.Screen name="auth/kvkk-consent" options={{ headerShown: true, title: '' }} />
             <Stack.Screen name="auth/forgot-password" options={{ headerShown: true, title: '' }} />
             <Stack.Screen name="(authed)/profile" options={{ headerShown: true, title: '' }} />
+            <Stack.Screen name="(authed)/search" options={{ headerShown: true, title: '' }} />
+            <Stack.Screen name="(authed)/map" options={{ headerShown: true, title: '' }} />
+            <Stack.Screen name="stops/[id]" options={{ headerShown: true, title: '' }} />
           </Stack>
         </NavGate>
       </AuthProvider>

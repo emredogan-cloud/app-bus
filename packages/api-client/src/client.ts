@@ -128,6 +128,78 @@ export class ApiClient {
     return out;
   }
 
+  // ── Transit endpoints (Phase 2) ────────────────────────────────────────
+  listCities(): Promise<
+    Array<{ id: string; code: 'IST' | 'ANK'; name: string; timezone: string }>
+  > {
+    return this.request('/v1/cities', { method: 'GET' });
+  }
+
+  listRoutes(
+    code: 'IST' | 'ANK',
+    params: { mode?: string; cursor?: string; limit?: number } = {},
+  ): Promise<{
+    items: Array<{
+      id: string;
+      code: string;
+      name_tr: string;
+      name_en: string | null;
+      mode: string;
+      route_family_id: string | null;
+    }>;
+    next_cursor: string | null;
+  }> {
+    return this.request(`/v1/cities/${code}/routes`, { method: 'GET', query: params });
+  }
+
+  getRoute(id: string): Promise<{
+    id: string;
+    code: string;
+    name_tr: string;
+    name_en: string | null;
+    mode: string;
+    polyline: string | null;
+  }> {
+    return this.request(`/v1/routes/${id}`, { method: 'GET' });
+  }
+
+  stopsNearby(input: { lat: number; lng: number; radius_m?: number; limit?: number }): Promise<
+    Array<{
+      id: string;
+      external_id: string;
+      name_tr: string;
+      name_en: string | null;
+      lat: number;
+      lng: number;
+      distance_m: number;
+    }>
+  > {
+    return this.request('/v1/stops/nearby', { method: 'GET', query: input });
+  }
+
+  getStop(id: string): Promise<{
+    id: string;
+    external_id: string;
+    name_tr: string;
+    name_en: string | null;
+    lat: number;
+    lng: number;
+    lines: Array<{
+      direction: string;
+      sequence: number;
+      route: { id: string; code: string; name_tr: string; mode: string };
+    }>;
+  }> {
+    return this.request(`/v1/stops/${id}`, { method: 'GET' });
+  }
+
+  search(params: { q: string; city?: 'IST' | 'ANK'; limit?: number }): Promise<{
+    stops: Array<{ id: string; name_tr: string; lat: number; lng: number; sim: number }>;
+    routes: Array<{ id: string; code: string; name_tr: string; mode: string; sim: number }>;
+  }> {
+    return this.request('/v1/search', { method: 'GET', query: params });
+  }
+
   // ── User endpoints ─────────────────────────────────────────────────────
   getProfile(): Promise<UserProfile> {
     return this.request<UserProfile>('/v1/users/me', { method: 'GET' });

@@ -34,6 +34,31 @@ enum DeleteStatus {
   purged        // PII anonymized
 }
 
+enum CityCode {
+  IST
+  ANK
+}
+
+enum SourceType {
+  GTFS_STATIC
+  GTFS_RT
+  CUSTOM_REST
+  CUSTOM_SCRAPE
+}
+
+enum TransitMode {
+  bus
+  metro
+  tram
+  ferry
+  funicular
+}
+
+enum Direction {
+  outbound // 0
+  inbound  // 1
+}
+
 model User {
   id             String       @id @default(uuid()) @db.Uuid
   email          String       @unique @db.Citext
@@ -126,6 +151,148 @@ model EmailVerificationToken {
 
   @@index([user_id])
   @@map("email_verification_tokens")
+}
+
+// ── Transit static data (Phase 2) ───────────────────────────────────────────
+
+model City {
+  id        String     @id @default(uuid()) @db.Uuid
+  code      CityCode   @unique
+  name      String     @db.VarChar(120)
+  timezone  String     @db.VarChar(40)
+  // bbox geometry stored via raw SQL — omitted here to keep Prisma generator happy.
+  active    Boolean    @default(true)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @updatedAt @db.Timestamptz(6)
+
+  operators Operator[]
+  routes    Route[]
+  stops     Stop[]
+
+  @@map("cities")
+}
+
+model Operator {
+  id          String     @id @default(uuid()) @db.Uuid
+  city_id     String     @db.Uuid
+  code        String     @db.VarChar(40) // e.g. "iett", "ego"
+  name        String     @db.VarChar(120)
+  source_type SourceType
+  // api_config holds source-specific config (URLs, headers, etc.) — encrypted at rest by RDS
+  api_config  Json       @db.JsonB
+  active      Boolean    @default(true)
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime   @updatedAt @db.Timestamptz(6)
+
+  city   City    @relation(fields: [city_id], references: [id])
+  routes Route[]
+  stops  Stop[]
+
+  @@unique([city_id, code])
+  @@map("operators")
+}
+
+model Route {
+  id           String      @id @default(uuid()) @db.Uuid
+  operator_id  String      @db.Uuid
+  city_id      String      @db.Uuid
+  // Stable cross-source id (e.g. operator + external_id)
+  external_id  String      @db.VarChar(120)
+  code         String      @db.VarChar(40) // e.g. "500T"
+  name_tr      String      @db.VarChar(255)
+  name_en      String?     @db.VarChar(255)
+  mode         TransitMode
+  // Optional grouping for variants (500T, 500T1, 500T2)
+  route_family_id String? @db.VarChar(40)
+  // Route shape stored as PostGIS geometry(LineString,4326); managed via raw SQL.
+  active       Boolean     @default(true)
+  created_at   DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime    @updatedAt @db.Timestamptz(6)
+
+  operator    Operator    @relation(fields: [operator_id], references: [id])
+  city        City        @relation(fields: [city_id], references: [id])
+  route_stops RouteStop[]
+  schedules   ScheduleEntry[]
+
+  @@unique([operator_id, external_id])
+  @@index([city_id, mode, active])
+  @@index([code])
+  @@map("routes")
+}
+
+model Stop {
+  id          String   @id @default(uuid()) @db.Uuid
+  operator_id String   @db.Uuid
+  city_id     String   @db.Uuid
+  external_id String   @db.VarChar(120)
+  name_tr     String   @db.VarChar(255)
+  name_en     String?  @db.VarChar(255)
+  // Lat/Lng kept as floats for cheap reads; canonical geometry(Point,4326) lives in PostGIS column "location".
+  lat         Float    @db.DoublePrecision
+  lng         Float    @db.DoublePrecision
+  accessibility_features Json? @db.JsonB
+  active      Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @updatedAt @db.Timestamptz(6)
+
+  operator    Operator    @relation(fields: [operator_id], references: [id])
+  city        City        @relation(fields: [city_id], references: [id])
+  route_stops RouteStop[]
+  schedules   ScheduleEntry[]
+
+  @@unique([operator_id, external_id])
+  @@index([city_id])
+  @@map("stops")
+}
+
+model RouteStop {
+  id        String    @id @default(uuid()) @db.Uuid
+  route_id  String    @db.Uuid
+  stop_id   String    @db.Uuid
+  sequence  Int
+  direction Direction
+  // Pre-computed distance from route start to this stop along the shape (Phase 5 ETA)
+  distance_along_shape_m Int?
+
+  route Route @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  stop  Stop  @relation(fields: [stop_id], references: [id], onDelete: Cascade)
+
+  @@unique([route_id, direction, sequence])
+  @@index([stop_id])
+  @@map("route_stops")
+}
+
+// Static schedule entries — used as ETA fallback (Phase 5).
+model ScheduleEntry {
+  id        String    @id @default(uuid()) @db.Uuid
+  route_id  String    @db.Uuid
+  stop_id   String    @db.Uuid
+  direction Direction
+  // Bitmask of days: bit 0 = Monday, bit 6 = Sunday
+  days_of_week Int
+  // Seconds from local-midnight at the stop
+  departure_seconds_from_midnight Int
+
+  route Route @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  stop  Stop  @relation(fields: [stop_id], references: [id], onDelete: Cascade)
+
+  @@index([stop_id, days_of_week, departure_seconds_from_midnight])
+  @@index([route_id])
+  @@map("schedule_entries")
+}
+
+model ImportRun {
+  id          String   @id @default(uuid()) @db.Uuid
+  operator_id String   @db.Uuid
+  source_url  String?  @db.Text
+  status      String   @db.VarChar(40) // running | success | failed
+  stats       Json?    @db.JsonB
+  error       String?  @db.Text
+  started_at  DateTime @default(now()) @db.Timestamptz(6)
+  finished_at DateTime? @db.Timestamptz(6)
+
+  @@index([operator_id, started_at])
+  @@map("import_runs")
 }
 
 model PasswordResetToken {

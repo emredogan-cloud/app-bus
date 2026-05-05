@@ -66,6 +66,25 @@
       "network": "Ağ hatası. Bağlantınızı kontrol edin."
     }
   },
+  "transit": {
+    "search": {
+      "title": "Ara",
+      "placeholder": "Durak veya hat ara…",
+      "stops": "Duraklar",
+      "routes": "Hatlar",
+      "empty": "Sonuç bulunamadı",
+      "min_chars": "En az 2 karakter girin"
+    },
+    "stop": {
+      "lines": "Bu duraktan geçen hatlar",
+      "no_lines": "Henüz hat bilgisi yok",
+      "directions": { "outbound": "Gidiş", "inbound": "Dönüş" }
+    },
+    "map": {
+      "coming_soon": "Harita yakında",
+      "placeholder_msg": "MapLibre + Protomaps karoları Faz 4'te devreye alınacak."
+    }
+  },
   "profile": {
     "title": "Profil",
     "name": "Ad",
