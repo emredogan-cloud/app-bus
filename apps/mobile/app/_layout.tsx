@@ -68,6 +68,10 @@ function RootLayout() {
             <Stack.Screen name="(authed)/search" options={{ headerShown: true, title: '' }} />
             <Stack.Screen name="(authed)/map" options={{ headerShown: true, title: '' }} />
             <Stack.Screen name="(authed)/favorites" options={{ headerShown: true, title: '' }} />
+            <Stack.Screen
+              name="(authed)/paywall"
+              options={{ headerShown: true, title: '', presentation: 'modal' }}
+            />
             <Stack.Screen name="stops/[id]" options={{ headerShown: true, title: '' }} />
           </Stack>
         </NavGate>

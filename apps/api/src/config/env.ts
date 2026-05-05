@@ -64,6 +64,10 @@ const envSchema = z
     MQTT_URL: z.string().url().optional(),
     WS_BBOX_MAX_DIAGONAL_KM: z.coerce.number().positive().default(50),
     WS_MAX_SUBS_PER_CONN: z.coerce.number().int().positive().default(50),
+
+    // ── Billing (Phase 8) ──────────────────────────────────────────────────
+    REVENUECAT_WEBHOOK_SECRET: z.string().optional(),
+    FREE_TIER_MAX_FAVORITES: z.coerce.number().int().positive().default(5),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.JWT_KEY_SOURCE === 'generate') {

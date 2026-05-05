@@ -200,6 +200,14 @@ export class ApiClient {
     return this.request('/v1/search', { method: 'GET', query: params });
   }
 
+  // ── Billing (Phase 8) ──────────────────────────────────────────────────
+  getEntitlements(): Promise<{
+    tier: 'free' | 'premium';
+    features: { ad_free: boolean; unlimited_favorites: boolean; biometric_unlock: boolean };
+  }> {
+    return this.request('/v1/users/me/entitlements', { method: 'GET' });
+  }
+
   // ── Favorites + Notifications (Phase 6) ────────────────────────────────
   listFavorites(): Promise<
     Array<{

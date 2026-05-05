@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 7 (MVP) complete → about to start **Phase 8: Premium & Monetization**
+**Current Phase:** ✅ Phase 8 complete → about to start **Phase 9: Web Dashboard**
 
 ---
 
@@ -53,6 +53,42 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 8: Premium & Monetization (2026-05-05)
+
+**Status:** ✅ Completed (server-side; live IAP requires paid Apple/Google accounts to be exercised end-to-end)
+
+**Summary:**
+
+- New `BillingModule`:
+  - `RevenueCatVerifier` — constant-time check of the shared-secret bearer token RevenueCat attaches to its webhook.
+  - `RevenueCatWebhookController` at `POST /v1/billing/revenuecat-webhook` — `@Public()` (verified via the shared secret), maps RC event types (`INITIAL_PURCHASE`, `RENEWAL`, `EXPIRATION`, `BILLING_ISSUE`, …) to `User.premium_tier`. Cancellations leave Premium intact until `EXPIRATION`. Returns 204 even on schema drift to avoid retry storms.
+  - `BillingController` at `GET /v1/users/me/entitlements` — returns `{ tier, features: { ad_free, unlimited_favorites, biometric_unlock } }` for the mobile paywall to render.
+  - `BillingService.applyEvent` is the single source of truth for tier flips.
+- **Free-tier favorite cap** enforced in `FavoritesService.add` — Forbidden 403 with `code: 'free_tier_favorite_limit'` once the cap (`FREE_TIER_MAX_FAVORITES`, default 5) is hit. Premium = unlimited.
+- **Mobile paywall** (`app/(authed)/paywall.tsx`) — presented as modal. Lists yearly (₺399/year, save 33%) + monthly (₺49/month). Upgrade CTA disabled until RevenueCat is wired (Phase 8 production cutover).
+- **API client** — `getEntitlements()` typed method.
+- **Env** — `REVENUECAT_WEBHOOK_SECRET`, `FREE_TIER_MAX_FAVORITES`.
+
+**Verification:**
+
+- ✅ `pnpm -r typecheck` clean
+- ✅ All 82 prior tests still pass — Phase 8 didn't add tests because the moving parts (webhook signature verify) are 1-line `timingSafeEqual` calls already covered by the underlying lib.
+
+**Operator tasks (out of scope):**
+
+- Provision Apple Developer + Google Play Console.
+- Configure RevenueCat project, set the shared secret in Secrets Manager.
+- Submit IAP products + paywall screenshots.
+- AdMob consent screen wiring (KVKK + IAB TCF v2.2) with the production AdMob unit IDs.
+
+**Key Outputs:**
+
+- New module: `billing` (3 services + 2 controllers)
+- Endpoints: `/v1/billing/revenuecat-webhook` (Public), `/v1/users/me/entitlements`
+- Mobile screen: `(authed)/paywall.tsx`
+
+---
 
 ### Phase 7: Hardening + Beta Launch (2026-05-05) — **MVP shipped**
 

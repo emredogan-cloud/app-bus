@@ -1,10 +1,20 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { FavoriteTarget } from '@prisma/client';
+import type { AppEnv } from '../../config/env.js';
 
 @Injectable()
 export class FavoritesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService<AppEnv, true>,
+  ) {}
 
   list(userId: string) {
     return this.prisma.userFavorite.findMany({
@@ -14,8 +24,21 @@ export class FavoritesService {
   }
 
   async add(userId: string, target_type: FavoriteTarget, target_id: string, label?: string) {
+    // Free-tier cap (Phase 8). Premium = unlimited.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { premium_tier: true },
+    });
+    const cap = this.config.get('FREE_TIER_MAX_FAVORITES', { infer: true });
+    const existingCount = await this.prisma.userFavorite.count({ where: { user_id: userId } });
+    if (user?.premium_tier !== 'premium' && existingCount >= cap) {
+      throw new ForbiddenException({
+        code: 'free_tier_favorite_limit',
+        detail: `Upgrade to Premium for unlimited favorites (free limit: ${cap}).`,
+      });
+    }
+
     try {
-      const existingCount = await this.prisma.userFavorite.count({ where: { user_id: userId } });
       return await this.prisma.userFavorite.create({
         data: { user_id: userId, target_type, target_id, label, sort_order: existingCount },
       });
