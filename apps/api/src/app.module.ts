@@ -19,6 +19,8 @@ import { EtaModule } from './modules/eta/eta.module.js';
 import { FavoritesModule } from './modules/favorites/favorites.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { BillingModule } from './modules/billing/billing.module.js';
+import { AnalyticsModule } from './modules/analytics/analytics.module.js';
+import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module.js';
 import { AuthGuard } from './modules/auth/auth.guard.js';
 
 @Module({
@@ -69,6 +71,8 @@ import { AuthGuard } from './modules/auth/auth.guard.js';
     FavoritesModule,
     NotificationsModule,
     BillingModule,
+    AnalyticsModule,
+    FeatureFlagsModule,
   ],
   providers: [
     // Global guard: every endpoint requires auth unless decorated with @Public().

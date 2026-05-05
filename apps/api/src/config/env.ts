@@ -71,6 +71,17 @@ const envSchema = z
     // ── Billing (Phase 8) ──────────────────────────────────────────────────
     REVENUECAT_WEBHOOK_SECRET: z.string().optional(),
     FREE_TIER_MAX_FAVORITES: z.coerce.number().int().positive().default(5),
+
+    // ── ML ETA (Phase 11) ──────────────────────────────────────────────────
+    ML_ETA_TRAFFIC_PCT: z.coerce.number().min(0).max(100).default(0),
+    ML_ETA_SERVICE_URL: z.string().url().optional(),
+
+    // ── Analytics + flags (Phase 14) ───────────────────────────────────────
+    ANALYTICS_ADAPTER: z.enum(['dev', 'posthog']).default('dev'),
+    POSTHOG_API_KEY: z.string().optional(),
+    POSTHOG_HOST: z.string().url().default('https://eu.i.posthog.com'),
+    FEATURE_FLAGS_JSON: z.string().optional(),
+    GROWTHBOOK_API_HOST: z.string().url().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.JWT_KEY_SOURCE === 'generate') {

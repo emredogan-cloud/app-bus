@@ -103,6 +103,10 @@ model User {
   notification_rules      NotificationRule[]
   notification_logs       NotificationLog[]
   device_tokens           DeviceToken[]
+  crowd_reports           CrowdReport[]
+  api_keys                ApiKey[]
+  referrals_owned         Referral[] @relation("ReferralOwner")
+  referrals_redeemed      Referral[] @relation("ReferralRedeemer")
 
   @@index([delete_status, delete_purge_at])
   @@map("users")
@@ -406,4 +410,60 @@ model DeviceToken {
 
   @@index([user_id])
   @@map("device_tokens")
+}
+
+// ── Phase 13: advanced features ─────────────────────────────────────────────
+
+enum CrowdLevel {
+  empty
+  normal
+  busy
+  full
+}
+
+model CrowdReport {
+  id          String         @id @default(uuid()) @db.Uuid
+  user_id     String         @db.Uuid
+  target_type FavoriteTarget
+  target_id   String         @db.Uuid
+  level       CrowdLevel
+  created_at  DateTime       @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([target_type, target_id, created_at])
+  @@map("crowd_reports")
+}
+
+model ApiKey {
+  id                  String    @id @default(uuid()) @db.Uuid
+  user_id             String?   @db.Uuid
+  name                String    @db.VarChar(120)
+  key_hash            String    @unique
+  scopes              String    @default("read:public")
+  rate_limit_per_min  Int       @default(600)
+  active              Boolean   @default(true)
+  expires_at          DateTime? @db.Timestamptz(6)
+  last_used_at        DateTime? @db.Timestamptz(6)
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id, active])
+  @@map("api_keys")
+}
+
+model Referral {
+  id                   String    @id @default(uuid()) @db.Uuid
+  code                 String    @unique @db.VarChar(40)
+  owner_user_id        String    @db.Uuid
+  redeemed_by_user_id  String?   @db.Uuid
+  redeemed_at          DateTime? @db.Timestamptz(6)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+
+  owner    User  @relation("ReferralOwner", fields: [owner_user_id], references: [id], onDelete: Cascade)
+  redeemer User? @relation("ReferralRedeemer", fields: [redeemed_by_user_id], references: [id], onDelete: SetNull)
+
+  @@index([owner_user_id])
+  @@map("referrals")
 }
