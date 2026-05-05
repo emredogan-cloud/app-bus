@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 8 complete → about to start **Phase 9: Web Dashboard**
+**Current Phase:** ✅ Phase 9 complete → about to start **Phase 10: Multi-City Expansion**
 
 ---
 
@@ -53,6 +53,42 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 9: Web Dashboard (Next.js 15) (2026-05-05)
+
+**Status:** ✅ Completed (scaffold + public SEO pages; Stripe live wiring requires merchant account)
+
+**Summary:**
+
+- New workspace `apps/web` (Next.js 15.0.3, App Router, React 18.3.1) on port 3001.
+- Reuses workspace packages: `@app-bus/api-client` for typed REST calls, `@app-bus/types` for schemas. `transpilePackages` enabled so Next consumes TS sources directly.
+- **Public SEO pages**:
+  - `/` — landing with city links.
+  - `/sehir/[code]` — Istanbul/Ankara route lists, ISR `revalidate: 300`.
+  - `/durak/[id]` — stop detail with route list, structured data (`Place` schema.org JSON-LD), per-stop OG metadata. ISR `revalidate: 300`.
+- **SEO infra**: `app/sitemap.ts` (city + landing — per-stop entries deferred to a nightly worker once a `/v1/stops?city=…` bulk endpoint is added), `app/robots.ts`, `metadataBase` for OG image resolution.
+- **Cookie consent banner** (`_components/cookie-consent.tsx`): KVKK + GDPR sticky bottom bar with two-button choice (necessary / all), decision persisted in `localStorage`. No tracking cookies are set before consent.
+- **Stripe webhook stub** at `app/api/stripe/webhook/route.ts`: signature-verified raw-body POST; logs the event type. Forwards-to-API logic deferred to Phase 9.5 (one shared-secret hop similar to RevenueCat).
+- Dev server runs on `pnpm --filter @app-bus/web dev` (port 3001).
+
+**Verification:**
+
+- ✅ `pnpm --filter @app-bus/web typecheck` clean
+- ⏭️ Live API integration was tested only at the type level on this host — visual verification will run from staging once `NEXT_PUBLIC_API_URL` points to a deployed env
+
+**Operator tasks (out of scope):**
+
+- Stripe Connect/Subscriptions configuration with TR + EU pricing tiers (₺ via TRY, € via EUR).
+- Vercel project with `STRIPE_*` env vars.
+- Domain provisioning for `app-bus.tr` + `status.app-bus.tr`.
+
+**Key Outputs:**
+
+- New workspace: `@app-bus/web`
+- Public pages: `/`, `/sehir/[code]`, `/durak/[id]`
+- API route: `/api/stripe/webhook`
+
+---
 
 ### Phase 8: Premium & Monetization (2026-05-05)
 

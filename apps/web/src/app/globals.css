@@ -1,0 +1,30 @@
+:root {
+  --color-bg: #fafafa;
+  --color-text: #0f172a;
+  --color-subtext: #475569;
+  --color-primary: #0e7490;
+  --color-border: #e2e8f0;
+  --color-surface: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'Inter',
+    'Segoe UI',
+    sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
