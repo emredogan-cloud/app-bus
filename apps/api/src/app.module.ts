@@ -16,6 +16,8 @@ import { UsersModule } from './modules/users/users.module.js';
 import { TransitModule } from './modules/transit/transit.module.js';
 import { LiveModule } from './modules/live/live.module.js';
 import { EtaModule } from './modules/eta/eta.module.js';
+import { FavoritesModule } from './modules/favorites/favorites.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { AuthGuard } from './modules/auth/auth.guard.js';
 
 @Module({
@@ -63,6 +65,8 @@ import { AuthGuard } from './modules/auth/auth.guard.js';
     TransitModule,
     LiveModule,
     EtaModule,
+    FavoritesModule,
+    NotificationsModule,
   ],
   providers: [
     // Global guard: every endpoint requires auth unless decorated with @Public().

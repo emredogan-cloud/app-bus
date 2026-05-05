@@ -59,6 +59,24 @@ enum Direction {
   inbound  // 1
 }
 
+enum FavoriteTarget {
+  stop
+  route
+}
+
+enum DevicePlatform {
+  ios
+  android
+  web
+}
+
+enum NotificationStatus {
+  queued
+  sent
+  failed
+  skipped
+}
+
 model User {
   id             String       @id @default(uuid()) @db.Uuid
   email          String       @unique @db.Citext
@@ -78,6 +96,10 @@ model User {
   kvkk_consents           KvkkConsent[]
   email_verification_tokens EmailVerificationToken[]
   password_reset_tokens   PasswordResetToken[]
+  favorites               UserFavorite[]
+  notification_rules      NotificationRule[]
+  notification_logs       NotificationLog[]
+  device_tokens           DeviceToken[]
 
   @@index([delete_status, delete_purge_at])
   @@map("users")
@@ -308,4 +330,77 @@ model PasswordResetToken {
 
   @@index([user_id])
   @@map("password_reset_tokens")
+}
+
+// ── Favorites + Notifications (Phase 6) ────────────────────────────────────
+
+model UserFavorite {
+  id          String         @id @default(uuid()) @db.Uuid
+  user_id     String         @db.Uuid
+  target_type FavoriteTarget
+  target_id   String         @db.Uuid
+  label       String?        @db.VarChar(120)
+  sort_order  Int            @default(0)
+  created_at  DateTime       @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, target_type, target_id])
+  @@index([user_id, sort_order])
+  @@map("user_favorites")
+}
+
+model NotificationRule {
+  id                   String   @id @default(uuid()) @db.Uuid
+  user_id              String   @db.Uuid
+  // Rule fires for stop/route pairs (route_id may be null = "any line at this stop")
+  stop_id              String   @db.Uuid
+  route_id             String?  @db.Uuid
+  threshold_minutes    Int      // notify when ETA equals this many minutes
+  // Bitmask of weekdays: bit 0 = Monday, bit 6 = Sunday
+  days_of_week_bitmask Int      @default(127)
+  // Quiet-hours window in minutes-from-midnight (local). NULL = no quiet hours.
+  quiet_hours_start_min Int?
+  quiet_hours_end_min   Int?
+  enabled              Boolean  @default(true)
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, enabled])
+  @@index([stop_id])
+  @@map("notification_rules")
+}
+
+model NotificationLog {
+  id              String             @id @default(uuid()) @db.Uuid
+  user_id         String             @db.Uuid
+  rule_id         String             @db.Uuid
+  eta_unix        Int
+  sent_at         DateTime?          @db.Timestamptz(6)
+  status          NotificationStatus
+  expo_receipt_id String?            @db.VarChar(120)
+  // sha256("{user_id}:{rule_id}:{eta_unix_rounded_to_60s}") — prevents dupes on worker restart
+  idempotency_key String             @unique
+  created_at      DateTime           @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, sent_at])
+  @@map("notification_logs")
+}
+
+model DeviceToken {
+  id              String         @id @default(uuid()) @db.Uuid
+  user_id         String         @db.Uuid
+  expo_push_token String         @unique
+  platform        DevicePlatform
+  last_seen_at    DateTime       @default(now()) @db.Timestamptz(6)
+  created_at      DateTime       @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("device_tokens")
 }
