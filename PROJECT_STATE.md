@@ -4,7 +4,7 @@
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
 **Status:** In Development
-**Current Phase:** ✅ Phase 2 complete → about to start **Phase 3: Real-Time Vehicle Position Ingestion**
+**Current Phase:** ✅ Phase 3 complete → about to start **Phase 4: Live Map — WebSocket Streaming**
 
 ---
 
@@ -53,6 +53,39 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 3: Real-Time Vehicle Position Ingestion (2026-05-05)
+
+**Status:** ✅ Completed
+
+**Summary:**
+
+- Migration `20260508000000_phase3_positions`: `vehicle_positions` table is created as a TimescaleDB hypertable when the extension is loaded (transparent to stock Postgres in dev), with 30-day retention policy.
+- Local `docker-compose.yml` swapped to `timescale/timescaledb-ha:pg16` (bundles PostGIS + Timescale) and now starts EMQX 5.8 alongside Postgres + Redis. Local Postgres init enables the `timescaledb` extension.
+- Go ingestion worker (`apps/ingestion`) — full pipeline:
+  - `internal/types`: canonical `Position` struct with operator-prefixed `VehicleID`, route external_id, city code, lat/lng, speed_kmh, heading, recorded_at, source_lag_ms.
+  - `internal/source`: `Source` interface + per-source `CircuitBreaker` (3-failure threshold, 5min cooldown, half-open trial) and exponential-with-jitter `Backoff` (caps at max).
+  - `IettSource` (HTTP poller, default 15s) and `EgoSource` (HTTP poller, default 20s, idles gracefully if no URL configured) consume each source's documented JSON shape, reject 429s with backoff, and emit canonical Position records.
+  - `internal/sink`: `FanOut` runs N sinks in parallel each with a bounded buffer; full buffer triggers **drop-oldest** so latest-wins semantics for live state are preserved; sustained overflow logs a structured warning.
+  - Sinks: `RedisSink` (HSET on `vehicles:{city}:{route_external_id}` + 90s EXPIRE, pipelined), `MqttSink` (publishes `positions/{city}/{route_external_id}` QoS 0 with auto-reconnect), `TimescaleSink` (5s/1000-record COPY batches into `vehicle_positions`), `LogSink` (every-Nth debug for dev).
+  - `internal/metrics`: Prometheus `positions_received_total{source}`, `positions_published_total{sink}`, `source_lag_seconds{source}` histogram, `sink_errors_total{sink}` exposed at `/metrics`.
+  - `cmd/ingestion/main.go`: HTTP servers for `/health` (8080) and `/metrics` (9090) running concurrently; graceful shutdown drains the pipeline within 15s. Sources auto-skip when their URL isn't configured so the worker stays healthy in dev.
+- Required envs documented in `apps/ingestion/.env.example`. Production fail-fast: `REDIS_URL`, `MQTT_URL`, `TIMESCALE_DSN` are mandatory when `APP_ENV=production`.
+
+**Verification:**
+
+- ✅ Go 1.23.4 build clean (`go vet ./... && go build`)
+- ✅ Go tests: 4 packages green (config defaults + prod-required env, health/ready handlers, source CircuitBreaker open/half-open/closed + Backoff caps, types JSON round-trip, FanOut delivers all + drops-oldest under sustained backpressure)
+- ✅ TimescaleDB migration tolerates stock Postgres (no-op on `create_hypertable` if extension absent)
+- ⚠️ Live wiring vs İETT/EGO requires production URLs in env — dev path uses LogSink only
+
+**Key Outputs:**
+
+- Go module: `github.com/app-bus/ingestion`
+- Public `Source` + `Sink` interfaces — easy to plug in GTFS-RT (Phase 10) or new operators (Phase 10)
+- Migration: `vehicle_positions` hypertable with 30d retention
+
+---
 
 ### Phase 2: Static Transit Data (2026-05-05)
 

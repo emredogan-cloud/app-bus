@@ -1,8 +1,8 @@
 # Local development dependencies for the api + ingestion + eta-engine apps.
-# Postgres has PostGIS, citext, pg_trgm, unaccent enabled for parity with production Aurora.
+# Postgres = TimescaleDB image (bundles PostGIS via the timescaledb-ha distribution).
 services:
   postgres:
-    image: postgis/postgis:16-3.4
+    image: timescale/timescaledb-ha:pg16
     environment:
       POSTGRES_USER: app_bus
       POSTGRES_PASSWORD: app_bus
@@ -26,6 +26,19 @@ services:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
+      retries: 5
+
+  emqx:
+    image: emqx/emqx:5.8
+    environment:
+      EMQX_ALLOW_ANONYMOUS: 'true'
+    ports:
+      - '1883:1883' # MQTT
+      - '18083:18083' # dashboard
+    healthcheck:
+      test: ['CMD', 'emqx', 'ctl', 'status']
+      interval: 10s
+      timeout: 5s
       retries: 5
 
 volumes:

@@ -10,10 +10,33 @@ func TestLoad_DefaultsWhenEmpty(t *testing.T) {
 	t.Setenv("HEALTH_ADDR", "")
 
 	cfg, err := Load()
-	if err == nil {
-		t.Fatalf("expected error when HEALTH_ADDR explicitly set to empty, got nil")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	_ = cfg
+	if cfg.Env != "development" {
+		t.Errorf("Env default = %q, want development", cfg.Env)
+	}
+	if cfg.LogLevel != "info" {
+		t.Errorf("LogLevel default = %q, want info", cfg.LogLevel)
+	}
+	if cfg.HealthAddr != ":8080" {
+		t.Errorf("HealthAddr default = %q, want :8080", cfg.HealthAddr)
+	}
+	if cfg.MetricsAddr != ":9090" {
+		t.Errorf("MetricsAddr default = %q, want :9090", cfg.MetricsAddr)
+	}
+}
+
+func TestLoad_ProductionRequiresSinks(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("REDIS_URL", "")
+	t.Setenv("MQTT_URL", "")
+	t.Setenv("TIMESCALE_DSN", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error: prod requires REDIS_URL/MQTT_URL/TIMESCALE_DSN")
+	}
 }
 
 func TestLoad_PicksUpEnv(t *testing.T) {

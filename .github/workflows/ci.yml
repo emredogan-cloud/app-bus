@@ -60,10 +60,20 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-          cache-dependency-path: apps/ingestion/go.sum
+          # cache-dependency-path is intentionally omitted — go.sum may not be checked in
+          # on first push (CI itself materializes it via `go mod download`).
+
+      - name: Download deps
+        run: go mod download
 
       - name: Tidy check
-        run: go mod tidy && git diff --exit-code go.mod || (echo "::error::go.mod/sum out of date" && exit 1)
+        run: |
+          go mod tidy
+          if [ -f go.sum ] && ! git diff --quiet go.mod go.sum; then
+            echo "::error::go.mod / go.sum out of date — run 'go mod tidy' locally"
+            git --no-pager diff go.mod go.sum
+            exit 1
+          fi
 
       - name: Vet
         run: go vet ./...
