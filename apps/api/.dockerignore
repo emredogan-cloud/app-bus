@@ -8,3 +8,7 @@ coverage
 **/*.log
 .git
 test
+# Stale incremental-build state from host runs would make tsc skip emit
+# inside the Docker builder. Always rebuild from scratch in the container.
+*.tsbuildinfo
+**/*.tsbuildinfo

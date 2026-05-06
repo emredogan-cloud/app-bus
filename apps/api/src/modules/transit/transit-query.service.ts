@@ -131,11 +131,11 @@ export class TransitQueryService {
       Array<{ id: string; name_tr: string; lat: number; lng: number; sim: number }>
     >`
       SELECT id, name_tr, lat, lng,
-             similarity(LOWER(unaccent(name_tr)), LOWER(unaccent(${q}))) AS sim
+             similarity(LOWER(immutable_unaccent(name_tr)), LOWER(immutable_unaccent(${q}))) AS sim
         FROM stops
        WHERE active = true
          AND ${city ? Prisma.sql`city_id = ${city.id}::uuid AND` : Prisma.empty}
-             LOWER(unaccent(name_tr)) % LOWER(unaccent(${q}))
+             LOWER(immutable_unaccent(name_tr)) % LOWER(immutable_unaccent(${q}))
        ORDER BY sim DESC
        LIMIT ${limit};
     `;
@@ -145,14 +145,14 @@ export class TransitQueryService {
     >`
       SELECT id, code, name_tr, mode::text AS mode,
              GREATEST(
-               similarity(LOWER(unaccent(code)), LOWER(unaccent(${q}))),
-               similarity(LOWER(unaccent(name_tr)), LOWER(unaccent(${q})))
+               similarity(LOWER(immutable_unaccent(code)), LOWER(immutable_unaccent(${q}))),
+               similarity(LOWER(immutable_unaccent(name_tr)), LOWER(immutable_unaccent(${q})))
              ) AS sim
         FROM routes
        WHERE active = true
          AND ${city ? Prisma.sql`city_id = ${city.id}::uuid AND` : Prisma.empty}
-             (LOWER(unaccent(code)) % LOWER(unaccent(${q}))
-              OR LOWER(unaccent(name_tr)) % LOWER(unaccent(${q})))
+             (LOWER(immutable_unaccent(code)) % LOWER(immutable_unaccent(${q}))
+              OR LOWER(immutable_unaccent(name_tr)) % LOWER(immutable_unaccent(${q})))
        ORDER BY sim DESC
        LIMIT ${limit};
     `;

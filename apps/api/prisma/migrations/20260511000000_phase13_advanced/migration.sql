@@ -15,9 +15,11 @@ CREATE TABLE "crowd_reports" (
   CONSTRAINT "crowd_reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
 );
 CREATE INDEX "crowd_reports_target_created_idx" ON "crowd_reports"("target_type", "target_id", "created_at" DESC);
--- one report per (user, target) per UTC day to deter spam
+-- one report per (user, target) per UTC day to deter spam.
+-- date_trunc on a timestamptz is STABLE (session timezone dependent), so we
+-- cast to UTC first which is IMMUTABLE.
 CREATE UNIQUE INDEX "crowd_reports_user_target_day_idx"
-  ON "crowd_reports"("user_id", "target_type", "target_id", (date_trunc('day', "created_at")));
+  ON "crowd_reports"("user_id", "target_type", "target_id", (("created_at" AT TIME ZONE 'UTC')::date));
 
 -- B2B API keys
 CREATE TABLE "api_keys" (

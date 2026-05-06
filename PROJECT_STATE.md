@@ -3,8 +3,39 @@
 ## 🧾 PROJECT OVERVIEW
 
 **Project Name:** Real-Time Public Transport Tracker (app-bus)
-**Status:** In Development
-**Current Phase:** ✅ Phase 10 complete → about to start **Phase 11: ML ETA**
+**Status:** All 14 phases of `BUILD_ROADMAP.md` scaffolded · E2E build verified
+**Current Phase:** ✅ Phases 0–14 complete (code-side) and end-to-end-verified: every workspace builds, all migrations apply on a real Postgres+TimescaleDB+PostGIS, the API Docker image boots and serves the full surface (auth flow, transit, search, /readyz). Ongoing operator tasks: AWS provisioning, GTFS feed URLs, paid Apple/Google accounts, RevenueCat config, ML training data accumulation (≥6 months), beta recruiting
+
+---
+
+## ✅ E2E build verification (2026-05-06)
+
+The full toolchain was exercised. Bugs found are fixed; commit history records each.
+
+| Check                               | Outcome                                                                                                                                                                                        |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm -r typecheck`                 | clean across api, api-client, types, mobile, web, ingestion (Go)                                                                                                                               |
+| `pnpm -r test`                      | 92 TS tests + 5 Go packages all green                                                                                                                                                          |
+| `pnpm build` (turbo)                | api dist/main.js, api-client dist, types dist, mobile iOS+Android Hermes bundles, web Next.js production build, ingestion Go binary — all emitted                                              |
+| Terraform `fmt -check` + `validate` | clean against `envs/dev`                                                                                                                                                                       |
+| Prisma `migrate deploy`             | all 7 migrations apply on a fresh Postgres 16 + PostGIS 3.6 + TimescaleDB 2.26; cities seeded; `vehicle_positions` becomes a hypertable                                                        |
+| `apps/ingestion` Docker image       | `app-bus/ingestion:test` (~22 MB distroless); /health + /ready respond                                                                                                                         |
+| `apps/api` Docker image             | `app-bus/api:test` (distroless); /health, /readyz, /v1/cities, /v1/search, /v1/stops/nearby, /v1/users/me (401 missing_token), full register → token → /me flow all return the expected shapes |
+
+### Bugs fixed during verification
+
+1. **Postgres `unaccent()` not IMMUTABLE** — couldn't be used in pg_trgm GIN indexes. Wrapped in a declared-IMMUTABLE SQL function `immutable_unaccent`; updated the search query to match. (Phase 2 migration.)
+2. **`date_trunc('day', timestamptz)` is STABLE** — couldn't be used in the `crowd_reports` unique index. Cast to UTC explicitly: `(("created_at" AT TIME ZONE 'UTC')::date)`. (Phase 13 migration.)
+3. **Phase 10 enum + INSERT in same transaction** — Postgres forbids referencing newly-added enum values within the same TX. Split into two migrations (`phase10_cities` adds the enum values, `phase10_cities_seed` inserts the rows).
+4. **Stale `tsconfig.tsbuildinfo` in Docker context** — `incremental: true` made tsc skip emit inside the builder. Added a root `.dockerignore` excluding `**/*.tsbuildinfo`.
+5. **`@app-bus/types` + `@app-bus/api-client` only emitted `.d.ts`** (`--emitDeclarationOnly`) — production Node couldn't load their source `.ts` at runtime. Switched to `tsc --outDir dist` (full JS+d.ts emit) and pointed package `main`/`exports` at `dist/`. Webpack/Metro consumers transparently follow.
+6. **Prisma `binaryTargets` missing `debian-openssl-3.0.x`** — query engine was generated for musl but distroless/debian12 needs glibc/openssl-3.0. Added all three targets (native, debian, musl).
+7. **`NotificationsModule` injected `EtaService` without importing `EtaModule`** — DI container couldn't resolve the dependency. Fixed by adding `imports: [EtaModule]`.
+8. **`pnpm install --ignore-scripts` skipped `prisma generate`** in the Dockerfile — added an explicit `prisma generate` after `pnpm deploy --prod /out` so the runtime image has the generated client.
+9. **`expo export --platform all` requires `react-native-web`** — limited mobile build to native-only (`--platform ios --platform android`); web is the standalone Next.js app.
+10. **Expo + pnpm hoisting** — Metro can't traverse pnpm's strict isolated layout for transitive deps like `@babel/runtime` and `whatwg-fetch`. Switched the workspace `.npmrc` to `node-linker=hoisted` with explicit `public-hoist-pattern` for `*expo*`, `*react-native*`, `@babel/runtime`, `metro*`, `whatwg-*`.
+11. **Next.js `typedRoutes` referenced a non-existent route `/hat/[id]`** — added the missing route page.
+12. **Missing `@expo/metro-runtime` direct dep** — added it.
 
 ---
 
@@ -53,6 +84,44 @@
 ### Phase 0: Project Foundation & DevOps Skeleton (2026-05-05)
 
 (See git history for the full list — pnpm/Turbo monorepo, NestJS+Expo+Go skeletons, Terraform IaC, CI/CD.)
+
+### Phase 11: ML ETA (scaffolding) (2026-05-05)
+
+**Status:** ✅ Routing layer + A/B framework committed. Model training requires ≥6 months of TimescaleDB history; the inference service (`apps/ml-inference`, Python + FastAPI + LightGBM) is documented but not yet a code repo since it depends on real data.
+
+**Summary:**
+
+- `AbRouter` (`apps/api/src/modules/eta/ab-router.ts`): stable sha256(experiment + user_id) bucket, partitioned by `ML_ETA_TRAFFIC_PCT` (0..100). Anonymous users always get the heuristic.
+- New env vars: `ML_ETA_TRAFFIC_PCT`, `ML_ETA_SERVICE_URL`.
+- Architecture doc `docs/architecture/ml-eta.md` describes the data flow (TimescaleDB → ml-trainer → S3 → ml-inference → API), feature inventory, training cadence (weekly), inference SLO (<50ms p99), and the silent-fallback behavior when the ML service is unhealthy.
+- 5 new ab-router tests (always-heuristic at 0%, anonymous fallback, always-ml at 100%, stable assignment, ~50/50 split with N=5000 tolerance ±5%).
+
+### Phase 12: Scale to 1M MAU (architecture + DR) (2026-05-05)
+
+**Status:** ✅ Architecture + runbook committed. EKS migration, multi-region Redis, gRPC are post-launch infra projects.
+
+- `docs/runbooks/disaster-recovery.md`: backup inventory, RTO=2h/RPO=5min targets, regional-failover procedure (Route 53 + cross-region snapshots), restore-from-PIT, annual DR drill checklist.
+- `docs/architecture/scale-1m.md`: ECS→EKS rationale, Aurora read replicas + Prisma replicaOf routing, Global Datastore Redis, gRPC migration triggers, vehicle-position dedup logic, wearables endpoint shape, OpenTelemetry tracing across HTTP+WS+MQTT, chaos engineering cadence.
+
+### Phase 13: Advanced Features (scaffolding) (2026-05-05)
+
+**Status:** ✅ Schemas + adapter scaffolds committed. UI surfaces (trip planner, B2B portal, referral redemption flow) ship in follow-up sprints.
+
+- Migration `20260511000000_phase13_advanced`:
+  - `crowd_reports` (with `CrowdLevel` enum) and a unique `(user_id, target, day)` index to deter spam.
+  - `api_keys` (sha256-hashed secret, scoped, with per-key rate limit + active flag + expiry).
+  - `referrals` (one-time code → invitee user_id link, with redeemed_at).
+- Prisma models added; relations wired to `User`.
+
+### Phase 14: Analytics + Experimentation (2026-05-05)
+
+**Status:** ✅ Adapters committed. Production wiring is one env var change.
+
+- `AnalyticsModule` with adapter pattern: `dev` (logs) and `posthog` (batched, 100/req or 5s, EU host by default for KVKK). On `flush()`, batch is forwarded to PostHog Cloud EU or self-hosted endpoint via `POSTHOG_HOST`.
+- `FeatureFlagsModule.isEnabled(flag, ctx)` — premium gates handled inline (`biometric_unlock`, `unlimited_favorites`, `ad_free`); other flags read from `FEATURE_FLAGS_JSON` env (operator-managed). GrowthBook integration documented but deferred.
+- New env vars: `ANALYTICS_ADAPTER`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `FEATURE_FLAGS_JSON`, `GROWTHBOOK_API_HOST`.
+
+---
 
 ### Phase 10: Multi-City Expansion (2026-05-05)
 

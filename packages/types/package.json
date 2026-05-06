@@ -4,20 +4,35 @@
   "private": true,
   "description": "Shared Zod schemas + inferred TS types (used by api, mobile, web)",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./auth": "./src/auth.ts",
-    "./transit": "./src/transit.ts",
-    "./common": "./src/common.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth.d.ts",
+      "default": "./dist/auth.js"
+    },
+    "./transit": {
+      "types": "./dist/transit.d.ts",
+      "default": "./dist/transit.js"
+    },
+    "./common": {
+      "types": "./dist/common.d.ts",
+      "default": "./dist/common.js"
+    }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsc --emitDeclarationOnly --declaration --outDir dist"
+    "build": "tsc --outDir dist"
   },
   "dependencies": {
     "zod": "^3.23.8"

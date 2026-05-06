@@ -1,0 +1,47 @@
+# Default ignore for Docker build contexts that use the repo root.
+# Per-app Dockerfiles can have their own .dockerignore which overrides this
+# when the build context is that app's directory.
+
+# Dependencies — Docker rebuild always re-installs.
+**/node_modules
+
+# Build outputs — Docker rebuild always re-emits.
+**/dist
+**/build
+**/.next
+**/.expo
+**/.turbo
+**/coverage
+
+# Stale incremental-build state would make tsc skip emit inside the container.
+**/*.tsbuildinfo
+
+# Source control + IDE.
+.git
+.idea
+.vscode
+
+# Environment files — never bake secrets into images.
+.env
+.env.*
+!.env.example
+
+# Logs.
+**/*.log
+
+# OS noise.
+.DS_Store
+Thumbs.db
+
+# Mobile build artifacts that aren't relevant to api/ingestion images.
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/.expo
+apps/mobile/dist
+
+# Terraform state.
+**/.terraform
+**/terraform.tfstate*
+
+# Go build artifacts.
+apps/ingestion/bin

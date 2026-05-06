@@ -99,10 +99,18 @@ BEFORE INSERT OR UPDATE OF lat, lng ON "stops"
 FOR EACH ROW EXECUTE FUNCTION sync_stop_location();
 
 -- Trigram + unaccent indexes for Turkish-aware fuzzy search.
--- Materialized "search_text" stays inline (use lower(unaccent(...)) at query time).
-CREATE INDEX "stops_name_trgm_idx" ON "stops" USING GIN (LOWER(unaccent("name_tr")) gin_trgm_ops);
-CREATE INDEX "routes_code_trgm_idx" ON "routes" USING GIN (LOWER(unaccent("code")) gin_trgm_ops);
-CREATE INDEX "routes_name_trgm_idx" ON "routes" USING GIN (LOWER(unaccent("name_tr")) gin_trgm_ops);
+-- Postgres marks `unaccent()` as STABLE (the dictionary it loads is mutable
+-- at runtime), which forbids its use in index expressions. We wrap it in a
+-- declared-IMMUTABLE SQL function — safe because we never reload the
+-- unaccent dictionary at runtime in this deployment.
+CREATE OR REPLACE FUNCTION immutable_unaccent(text)
+  RETURNS text
+  AS $$ SELECT public.unaccent('public.unaccent', $1) $$
+  LANGUAGE SQL IMMUTABLE;
+
+CREATE INDEX "stops_name_trgm_idx"   ON "stops"  USING GIN (LOWER(immutable_unaccent("name_tr")) gin_trgm_ops);
+CREATE INDEX "routes_code_trgm_idx"  ON "routes" USING GIN (LOWER(immutable_unaccent("code")) gin_trgm_ops);
+CREATE INDEX "routes_name_trgm_idx"  ON "routes" USING GIN (LOWER(immutable_unaccent("name_tr")) gin_trgm_ops);
 
 -- route_stops
 CREATE TABLE "route_stops" (

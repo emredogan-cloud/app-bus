@@ -45,10 +45,8 @@ const config: ExpoConfig = {
       backgroundColor: '#0e7490',
     },
   },
-  web: {
-    bundler: 'metro',
-    output: 'static',
-  },
+  // Web is shipped as the standalone @app-bus/web Next.js app.
+  // Keep this block off so `expo export` doesn't pull in react-native-web.
   plugins: [
     'expo-router',
     [

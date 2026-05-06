@@ -12,16 +12,21 @@ COPY packages/config/package.json packages/config/
 COPY packages/types/package.json packages/types/
 COPY apps/api/package.json apps/api/
 
-# Install all deps (workspace-aware)
+# Install all deps (workspace-aware). --ignore-scripts skips the @app-bus/api
+# postinstall (`prisma generate`) — the schema isn't copied yet. We invoke
+# `prisma:generate` explicitly after the source copy below.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source and build
 COPY packages packages
 COPY apps/api apps/api
 RUN pnpm --filter @app-bus/api prisma:generate \
+ && pnpm --filter @app-bus/types build \
  && pnpm --filter @app-bus/api build \
- && pnpm deploy --filter=@app-bus/api --prod /out
+ && pnpm deploy --filter=@app-bus/api --prod /out \
+ && cd /out \
+ && pnpm exec prisma generate --schema=./prisma/schema.prisma
 
 # ---- Runtime ---------------------------------------------------------------
 FROM gcr.io/distroless/nodejs22-debian12:nonroot AS runtime

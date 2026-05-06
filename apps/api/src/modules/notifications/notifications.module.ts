@@ -6,8 +6,10 @@ import { DevicesService } from './devices.service.js';
 import { NotificationEvaluator } from './notification-evaluator.js';
 import { ExpoPushAdapter } from './expo-push.adapter.js';
 import { RuleMatcher } from './rule-matcher.js';
+import { EtaModule } from '../eta/eta.module.js';
 
 @Module({
+  imports: [EtaModule],
   controllers: [NotificationsController, DevicesController],
   providers: [
     NotificationsService,

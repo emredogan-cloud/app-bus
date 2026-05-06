@@ -4,16 +4,22 @@
   "private": true,
   "description": "Typed fetch wrapper with bearer auth + 401-driven refresh interceptor (single-flight)",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc --emitDeclarationOnly --declaration --outDir dist"
+    "build": "tsc --outDir dist"
   },
   "dependencies": {
     "@app-bus/types": "workspace:*",
