@@ -40,7 +40,7 @@
   "devDependencies": {
     "@app-bus/config": "workspace:*",
     "eslint": "^9.13.0",
-    "typescript": "^5.6.3",
+    "typescript": "^6.0.3",
     "vitest": "^2.1.4"
   }
 }
