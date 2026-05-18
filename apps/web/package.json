@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@app-bus/config": "workspace:*",
-    "@types/node": "^22.7.0",
+    "@types/node": "^25.8.0",
     "@types/react": "~18.3.12",
     "@types/react-dom": "~18.3.1",
     "eslint": "^9.13.0",
